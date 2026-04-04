@@ -5587,6 +5587,366 @@ class NeutralFamilyMemoryV1:
             "history_rewrite_performed": False,
         }
 
+    def get_observability_evidence_review_stage_lock_audit(self) -> dict:
+        """
+        Observability Evidence Review Consistency / Stage Lock v1.1.
+        Read-only audit over observability evidence-review contract and its allowed source surfaces.
+        """
+        _OBS_REVIEW_API = "get_observability_evidence_review_summary"
+        _QUALITY_API = "get_pressure_capture_quality_summary"
+        _OBS_STAGE_API = "get_observability_stage_lock_audit"
+        _GUARDRAIL_FIELDS = [
+            "lineage_mutation_performed",
+            "event_creation_performed",
+            "history_rewrite_performed",
+        ]
+
+        def _safe_int(v) -> int:
+            if isinstance(v, bool):
+                return int(v)
+            if isinstance(v, (int, float)):
+                return int(v)
+            return 0
+
+        def _check(name: str, passed: bool, reason: str, details: Optional[dict] = None) -> dict:
+            return {
+                "check_name": name,
+                "passed": bool(passed),
+                "reason": reason,
+                "details": details if isinstance(details, dict) else {},
+            }
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            review_surface,
+            quality_surface,
+            stage_lock_surface,
+        ) -> dict:
+            return {
+                "audit_available": False,
+                "audit_mode": "OBSERVABILITY_EVIDENCE_REVIEW_STAGE_LOCK",
+                "lock_state": "OBSERVABILITY_EVIDENCE_REVIEW_STAGE_LOCK_UNAVAILABLE",
+                "reason": reason,
+                "check_results": [],
+                "contract_surface": {
+                    "required_surfaces": {
+                        "observability_evidence_review_api_present": callable(getattr(self, _OBS_REVIEW_API, None)),
+                        "pressure_capture_quality_summary_api_present": callable(getattr(self, _QUALITY_API, None)),
+                        "observability_stage_lock_api_present": callable(getattr(self, _OBS_STAGE_API, None)),
+                    },
+                    "allowed_audited_surfaces_only": [
+                        _OBS_REVIEW_API,
+                        _QUALITY_API,
+                        _OBS_STAGE_API,
+                    ],
+                    "frozen_review_mapping": {
+                        "ready_reason": "LOCKED_WITH_FULLY_AUDITABLE_OBSERVABILITY_EVIDENCE",
+                        "partial_reason": "LIMITED_OR_MIXED_OBSERVABILITY_EVIDENCE",
+                        "unavailable_reason": "OBSERVABILITY_EVIDENCE_SURFACE_INSUFFICIENT_OR_MISSING",
+                    },
+                },
+                "supporting_surfaces": {
+                    "observability_evidence_review_summary": review_surface,
+                    "observability_pressure_capture_quality_summary": quality_surface,
+                    "observability_stage_lock_audit": stage_lock_surface,
+                },
+                "warnings": [],
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        required_missing = []
+        if not callable(getattr(self, _OBS_REVIEW_API, None)):
+            required_missing.append(_OBS_REVIEW_API)
+        if not callable(getattr(self, _QUALITY_API, None)):
+            required_missing.append(_QUALITY_API)
+        if not callable(getattr(self, _OBS_STAGE_API, None)):
+            required_missing.append(_OBS_STAGE_API)
+        if required_missing:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required observability evidence-review stage-lock surface missing: "
+                    + ", ".join(required_missing)
+                    + "."
+                ),
+                review_surface=None,
+                quality_surface=None,
+                stage_lock_surface=None,
+            )
+
+        try:
+            review_surface = self.get_observability_evidence_review_summary()
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_observability_evidence_review_summary() raised {type(exc).__name__}.",
+                review_surface=None,
+                quality_surface=None,
+                stage_lock_surface=None,
+            )
+        try:
+            quality_surface = self.get_pressure_capture_quality_summary()
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_pressure_capture_quality_summary() raised {type(exc).__name__}.",
+                review_surface=review_surface,
+                quality_surface=None,
+                stage_lock_surface=None,
+            )
+        try:
+            stage_lock_surface = self.get_observability_stage_lock_audit()
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_observability_stage_lock_audit() raised {type(exc).__name__}.",
+                review_surface=review_surface,
+                quality_surface=quality_surface,
+                stage_lock_surface=None,
+            )
+
+        checks: list[dict] = []
+        warnings: list[str] = []
+
+        review_shape_ok = (
+            isinstance(review_surface, dict)
+            and review_surface.get("review_mode") == "OBSERVABILITY_EVIDENCE_REVIEW"
+            and isinstance(review_surface.get("review_state"), str)
+            and isinstance(review_surface.get("review_reason"), str)
+            and isinstance(review_surface.get("evidence_counts", {}), dict)
+            and isinstance(review_surface.get("evidence_scope", {}), dict)
+        )
+        checks.append(
+            _check(
+                "OBSERVABILITY_REVIEW_SURFACE_USABLE",
+                review_shape_ok,
+                "REVIEW_SURFACE_OK" if review_shape_ok else "REVIEW_SURFACE_SHAPE_UNEXPECTED",
+                {"review_surface_type": type(review_surface).__name__},
+            )
+        )
+
+        quality_shape_ok = (
+            isinstance(quality_surface, dict)
+            and isinstance(quality_surface.get("summary_available", False), bool)
+            and isinstance(quality_surface.get("audit_state_counts", {}), dict)
+            and isinstance(quality_surface.get("capture_reason_counts", {}), dict)
+            and isinstance(quality_surface.get("recoverability_counts", {}), dict)
+        )
+        checks.append(
+            _check(
+                "QUALITY_SOURCE_SURFACE_USABLE",
+                quality_shape_ok,
+                "QUALITY_SURFACE_OK" if quality_shape_ok else "QUALITY_SURFACE_SHAPE_UNEXPECTED",
+                {"quality_surface_type": type(quality_surface).__name__},
+            )
+        )
+
+        stage_lock_shape_ok = (
+            isinstance(stage_lock_surface, dict)
+            and stage_lock_surface.get("audit_mode") == "OBSERVABILITY_STAGE_LOCK"
+            and isinstance(stage_lock_surface.get("lock_state"), str)
+            and isinstance(stage_lock_surface.get("reason"), str)
+        )
+        checks.append(
+            _check(
+                "OBSERVABILITY_STAGE_LOCK_SOURCE_USABLE",
+                stage_lock_shape_ok,
+                "STAGE_LOCK_SURFACE_OK" if stage_lock_shape_ok else "STAGE_LOCK_SURFACE_SHAPE_UNEXPECTED",
+                {"stage_lock_surface_type": type(stage_lock_surface).__name__},
+            )
+        )
+
+        if review_shape_ok and quality_shape_ok and stage_lock_shape_ok:
+            quality_available = bool(quality_surface.get("summary_available", False))
+            stage_lock_available = bool(stage_lock_surface.get("audit_available", False))
+            stage_lock_state = str(
+                stage_lock_surface.get("lock_state", "OBSERVABILITY_STAGE_LOCK_UNAVAILABLE")
+            )
+            auditable = _safe_int(quality_surface.get("auditable_event_count", 0))
+            audit_state_counts = (
+                quality_surface.get("audit_state_counts", {})
+                if isinstance(quality_surface.get("audit_state_counts"), dict)
+                else {}
+            )
+            invalid_count = _safe_int(audit_state_counts.get("PRESSURE_CAPTURE_AUDIT_INVALID", 0))
+            unavailable_count = _safe_int(audit_state_counts.get("PRESSURE_CAPTURE_AUDIT_UNAVAILABLE", 0))
+
+            ready_expected = (
+                quality_available
+                and stage_lock_available
+                and stage_lock_state == "OBSERVABILITY_STAGE_LOCKED"
+                and auditable > 0
+                and invalid_count == 0
+                and unavailable_count == 0
+            )
+            if ready_expected:
+                expected_state = "OBSERVABILITY_EVIDENCE_REVIEW_READY"
+                expected_reason = "LOCKED_WITH_FULLY_AUDITABLE_OBSERVABILITY_EVIDENCE"
+            elif auditable > 0 and (quality_available or stage_lock_available):
+                expected_state = "OBSERVABILITY_EVIDENCE_REVIEW_PARTIAL"
+                expected_reason = "LIMITED_OR_MIXED_OBSERVABILITY_EVIDENCE"
+            else:
+                expected_state = "OBSERVABILITY_EVIDENCE_REVIEW_UNAVAILABLE"
+                expected_reason = "OBSERVABILITY_EVIDENCE_SURFACE_INSUFFICIENT_OR_MISSING"
+
+            observed_state = str(review_surface.get("review_state", "OBSERVABILITY_EVIDENCE_REVIEW_UNAVAILABLE"))
+            observed_reason = str(review_surface.get("review_reason", "OBSERVABILITY_EVIDENCE_REVIEW_REASON_MISSING"))
+
+            checks.append(
+                _check(
+                    "REVIEW_STATE_REASON_MATCH_ALLOWED_MAPPING",
+                    observed_state == expected_state and observed_reason == expected_reason,
+                    "STATE_REASON_MATCH" if observed_state == expected_state and observed_reason == expected_reason else "STATE_REASON_DRIFT",
+                    {
+                        "expected_state": expected_state,
+                        "observed_state": observed_state,
+                        "expected_reason": expected_reason,
+                        "observed_reason": observed_reason,
+                    },
+                )
+            )
+
+            review_counts = (
+                review_surface.get("evidence_counts", {})
+                if isinstance(review_surface.get("evidence_counts"), dict)
+                else {}
+            )
+            quality_count_match = (
+                _safe_int(review_counts.get("total_transition_events", -1))
+                == _safe_int(quality_surface.get("total_transition_events", -2))
+                and _safe_int(review_counts.get("total_auditable_events", -1))
+                == _safe_int(quality_surface.get("auditable_event_count", -2))
+                and _safe_int(review_counts.get("pressure_snapshot_present_count", -1))
+                == _safe_int(quality_surface.get("pressure_snapshot_present_count", -2))
+                and _safe_int(review_counts.get("pressure_snapshot_missing_count", -1))
+                == _safe_int(quality_surface.get("pressure_snapshot_missing_count", -2))
+                and review_counts.get("audit_state_counts", {}) == quality_surface.get("audit_state_counts", {})
+                and review_counts.get("capture_reason_counts", {}) == quality_surface.get("capture_reason_counts", {})
+                and review_counts.get("recoverability_counts", {}) == quality_surface.get("recoverability_counts", {})
+            )
+            checks.append(
+                _check(
+                    "QUALITY_COUNTS_COMPOSED_HONESTLY",
+                    quality_count_match,
+                    "QUALITY_COUNTS_MATCH" if quality_count_match else "QUALITY_COUNTS_DRIFT",
+                    {},
+                )
+            )
+
+            scope = review_surface.get("evidence_scope", {})
+            if not isinstance(scope, dict):
+                scope = {}
+            no_cross_or_system_keys = (
+                "cross_band_review_state" not in scope
+                and "cross_band_stage_lock_state" not in scope
+                and "system_gate_state" not in scope
+            )
+            supporting = review_surface.get("supporting_surfaces", {})
+            if not isinstance(supporting, dict):
+                supporting = {}
+            no_cross_or_system_support = (
+                "cross_band_evidence_review_summary" not in supporting
+                and "system_lock_gate_posture" not in supporting
+            )
+            checks.append(
+                _check(
+                    "NO_HIDDEN_CROSS_BAND_OR_SYSTEM_GATE_DEPENDENCY",
+                    no_cross_or_system_keys and no_cross_or_system_support,
+                    "NO_HIDDEN_CROSS_SYSTEM_CONTEXT"
+                    if no_cross_or_system_keys and no_cross_or_system_support
+                    else "HIDDEN_CROSS_SYSTEM_CONTEXT_DETECTED",
+                    {},
+                )
+            )
+
+        guardrail_violations = []
+        for surface_name, surface_payload in [
+            ("observability_evidence_review_summary", review_surface),
+            ("observability_pressure_capture_quality_summary", quality_surface),
+            ("observability_stage_lock_audit", stage_lock_surface),
+        ]:
+            if not isinstance(surface_payload, dict):
+                continue
+            for key in _GUARDRAIL_FIELDS:
+                if surface_payload.get(key) is not False:
+                    guardrail_violations.append(f"{surface_name}:{key}")
+        checks.append(
+            _check(
+                "READ_ONLY_GUARDRAILS_FALSE",
+                len(guardrail_violations) == 0,
+                "ALL_GUARDRAILS_FALSE" if len(guardrail_violations) == 0 else "GUARDRAIL_FLAG_VIOLATION",
+                {"violations": guardrail_violations},
+            )
+        )
+        if guardrail_violations:
+            warnings.append("READ_ONLY_GUARDRAIL_VIOLATION_DETECTED")
+
+        checks_failed = sum(1 for c in checks if c.get("passed") is False)
+        checks_passed = len(checks) - checks_failed
+
+        if checks_failed == 0:
+            lock_state = "OBSERVABILITY_EVIDENCE_REVIEW_STAGE_LOCKED"
+            reason = "ALL_CONSISTENCY_CHECKS_PASSED"
+            explanation_lines = [
+                "Observability evidence-review stage-lock checks passed."
+            ]
+        else:
+            lock_state = "OBSERVABILITY_EVIDENCE_REVIEW_STAGE_LOCK_INCONSISTENT"
+            reason = "CONSISTENCY_CHECK_FAILED"
+            failed = [c["check_name"] for c in checks if c.get("passed") is False]
+            explanation_lines = [
+                "Observability evidence-review stage-lock inconsistency detected.",
+                "Failed checks: " + ", ".join(failed),
+            ]
+
+        warnings.extend(review_surface.get("warnings", []) if isinstance(review_surface, dict) else [])
+        warnings.extend(quality_surface.get("warnings", []) if isinstance(quality_surface, dict) else [])
+        warnings.extend(stage_lock_surface.get("warnings", []) if isinstance(stage_lock_surface, dict) else [])
+
+        return {
+            "audit_available": True,
+            "audit_mode": "OBSERVABILITY_EVIDENCE_REVIEW_STAGE_LOCK",
+            "lock_state": lock_state,
+            "reason": reason,
+            "check_results": checks,
+            "contract_surface": {
+                "required_surfaces": {
+                    "observability_evidence_review_api_present": True,
+                    "pressure_capture_quality_summary_api_present": True,
+                    "observability_stage_lock_api_present": True,
+                },
+                "allowed_audited_surfaces_only": [
+                    _OBS_REVIEW_API,
+                    _QUALITY_API,
+                    _OBS_STAGE_API,
+                ],
+                "frozen_review_mapping": {
+                    "ready_reason": "LOCKED_WITH_FULLY_AUDITABLE_OBSERVABILITY_EVIDENCE",
+                    "partial_reason": "LIMITED_OR_MIXED_OBSERVABILITY_EVIDENCE",
+                    "unavailable_reason": "OBSERVABILITY_EVIDENCE_SURFACE_INSUFFICIENT_OR_MISSING",
+                },
+                "disallowed_hidden_context": {
+                    "cross_band_evidence_review_summary": True,
+                    "system_lock_gate_posture": True,
+                },
+            },
+            "supporting_surfaces": {
+                "observability_evidence_review_summary": review_surface,
+                "observability_pressure_capture_quality_summary": quality_surface,
+                "observability_stage_lock_audit": stage_lock_surface,
+            },
+            "warnings": sorted(set(warnings)),
+            "explanation_lines": explanation_lines,
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
     def get_system_evidence_review_summary(self) -> dict:
         """
         Implementation of System-Wide Evidence Review v1.1.

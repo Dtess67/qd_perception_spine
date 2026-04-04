@@ -30,16 +30,16 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-System-Wide Evidence Review v1.1 revalidated (v1.1a)
+Observability Evidence Review Consistency / Stage Lock v1.1
 
 ### Last completed layer
-System-Wide Evidence Review Revalidation v1.1a completed (no contract change required)
+Observability Evidence Review Consistency / Stage Lock v1.1 implemented and verified
 
 ### Current recommended next layer
-No new wrapper layer required (hold current upper stack)
+System-Wide Evidence Review Revalidation v1.1b
 
 ### Why this next layer exists
-The system evidence contract is now revalidated with a real observability evidence-review surface. The next honest step is a stability/consumer adoption checkpoint without adding new wrapper layers.
+Observability evidence review now has an explicit consistency/stage-lock audit surface. The next honest step is to revalidate system-wide evidence review with this new observability audit anchor active, without reopening lower semantics.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -47,6 +47,7 @@ The system evidence contract is now revalidated with a real observability eviden
 - audit relationship: `get_unified_system_consumer_posture_stage_lock_audit()` freezes/audits `get_unified_system_consumer_posture_summary()`
 - current top delivery surface: `get_unified_system_consumer_summary()`
 - current observability evidence-review surface: `get_observability_evidence_review_summary()`
+- current observability evidence-review audit surface: `get_observability_evidence_review_stage_lock_audit()`
 
 ---
 
@@ -69,6 +70,7 @@ The system evidence contract is now revalidated with a real observability eviden
   - System Lock Consumer Gate v1.1
 - Evidence review stack present and corrected:
   - Observability Evidence Review Summary v1.0
+  - Observability Evidence Review Consistency / Stage Lock v1.1
   - Cross-Band Evidence Review Summary v1.0
   - System-Wide Evidence Review v1.1
   - System Evidence Review Consistency / Stage Lock v1.2
@@ -130,6 +132,12 @@ The system evidence contract is now revalidated with a real observability eviden
   - `tests/test_unified_system_consumer_summary.py`
 - Focused observability evidence review tests now exist in:
   - `tests/test_observability_evidence_review.py`
+- `get_observability_evidence_review_stage_lock_audit()` is present in `src/qd_perception/neutral_family_memory_v1.py` as a read-only audit over:
+  - `get_observability_evidence_review_summary()`
+  - `get_pressure_capture_quality_summary()`
+  - `get_observability_stage_lock_audit()`
+- Focused observability evidence-review stage-lock tests now exist in:
+  - `tests/test_observability_evidence_review_stage_lock.py`
 - System-wide evidence review v1.1 behavior was revalidated with the real `get_observability_evidence_review_summary()` surface active:
   - READY/PARTIAL/UNAVAILABLE contract remained unchanged
   - no implementation/test correction was required
@@ -232,6 +240,30 @@ The system evidence contract is now revalidated with a real observability eviden
 - pytest cache permission warning
 - temp symlink cleanup PermissionError warning (non-blocking)
 
+### Session date: 2026-04-04 (Observability Evidence Review Consistency / Stage Lock v1.1)
+#### What we built
+- implemented `get_observability_evidence_review_stage_lock_audit()` as a read-only contract freeze/audit over allowed observability evidence-review source surfaces
+- audit checks include:
+  - allowed-source state/reason mapping consistency
+  - quality-count composition honesty
+  - no hidden cross-band/system-gate context
+  - read-only guardrail flags
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_observability_evidence_review_stage_lock.py`
+- `BUILD_LEDGER.md`
+- `runs/observability_evidence_review_stage_lock_v1_1_transcript.txt`
+- `runs/observability_evidence_review_stage_lock_v1_1_delivery.txt`
+
+#### Tests run
+- focused tests with `PYTHONPATH=src`: `25 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `316 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
 ---
 
 ## Current APIs / Surfaces Added
@@ -245,24 +277,24 @@ The system evidence contract is now revalidated with a real observability eviden
 - `get_unified_system_consumer_posture_stage_lock_audit()`
 - `get_unified_system_consumer_summary()`
 - `get_observability_evidence_review_summary()`
+- `get_observability_evidence_review_stage_lock_audit()`
 
 ---
 
 ## Next Step
 ### Immediate next step
-Stability hold and downstream consumer adoption checkpoint (no new wrapper layer)
+System-Wide Evidence Review Revalidation v1.1b
 
 ### Why this is the next honest step
-All current upper surfaces are green and revalidated. The honest next move is to keep semantics stable and pressure-test external consumption patterns before introducing any additional composition layer.
+System evidence review should now be revalidated with both observability review and observability review stage-lock surfaces present and contract-stable.
 
 ### What it must use
 - `get_system_evidence_review_summary()`
+- `get_observability_evidence_review_stage_lock_audit()`
 - `get_system_evidence_review_stage_lock_audit()`
 - `get_system_evidence_review_consumer_gate()`
 - `get_system_evidence_consumer_summary()`
-- `get_unified_system_consumer_posture_summary()`
-- `get_unified_system_consumer_posture_stage_lock_audit()`
-- `get_unified_system_consumer_summary()`
+- existing system evidence stack surfaces only through established contracts
 
 ### What it must NOT do
 - invent new truth predicates
@@ -316,7 +348,7 @@ Read these sections first:
 5. Next Step
 
 Current verified suite count:
-- Full suite: 310 passed, 1 warning
+- Full suite: 316 passed, 1 warning
 
 Current frozen top surface:
 - get_unified_system_consumer_posture_summary()
@@ -330,8 +362,11 @@ Current top delivery surface:
 Current observability evidence-review surface:
 - get_observability_evidence_review_summary()
 
+Current observability evidence-review audit surface:
+- get_observability_evidence_review_stage_lock_audit()
+
 Immediate next target:
-- Stability hold and downstream consumer adoption checkpoint (no new wrapper layer)
+- System-Wide Evidence Review Revalidation v1.1b
 
 Do not reopen locked lower semantics.
 Do not invent new predicates.
@@ -349,13 +384,15 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - Implemented Observability Evidence Review Summary v1.0
 - Added focused observability evidence review tests
 - Revalidated System-Wide Evidence Review v1.1 (v1.1a) with no contract correction required
+- Implemented Observability Evidence Review Consistency / Stage Lock v1.1
 - Verified full suite on the updated frontier
 
 ### Verified today
 - unified posture stage-lock audit surface is present in `neutral_family_memory_v1.py`
 - unified summary delivery surface is present in `neutral_family_memory_v1.py`
 - observability evidence-review surface is present in `neutral_family_memory_v1.py`
-- final full suite reported green at 310 passed, 1 warning
+- observability evidence-review stage-lock surface is present in `neutral_family_memory_v1.py`
+- final full suite reported green at 316 passed, 1 warning
 - focused system-evidence revalidation suite reported green at 28 passed, 1 warning
 - top unified posture stage lock present and validated
 - repo initialized and first local checkpoint commit created
@@ -367,7 +404,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ### First action next session
 - read BUILD_LEDGER.md first
-- hold upper semantics steady and pressure-test downstream consumers on existing surfaces
+- run System-Wide Evidence Review Revalidation v1.1b
 - update ledger again before stopping
 
 ### Pressure items / risks
