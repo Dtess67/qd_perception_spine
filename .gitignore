@@ -35,3 +35,7 @@ runs/
 
 # Jupyter
 .ipynb_checkpoints/
+
+.junie/
+cross_band_stage_lock_v1.4_summary.txt
+system_stage_lock_v1.0_report_for_q.txt
