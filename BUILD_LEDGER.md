@@ -30,16 +30,16 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-Observability Evidence Review Consistency / Stage Lock v1.1
+Cross-Band Evidence Review Summary Windowed v1.1
 
 ### Last completed layer
-Observability Evidence Review Consistency / Stage Lock v1.1 implemented and verified
+Cross-Band Evidence Review Summary Windowed v1.1 implemented and verified
 
 ### Current recommended next layer
-System-Wide Evidence Review Revalidation v1.1b
+Observability Evidence Review Summary Windowed v1.1
 
 ### Why this next layer exists
-Observability evidence review now has an explicit consistency/stage-lock audit surface. The next honest step is to revalidate system-wide evidence review with this new observability audit anchor active, without reopening lower semantics.
+Cross-band bounded evidence-review mapping now exists for index and event-order windows. The next honest step is to add the matching observability bounded evidence-review surface before any bounded system-level sampler, so scope asymmetry is explicit and not hidden.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -48,6 +48,9 @@ Observability evidence review now has an explicit consistency/stage-lock audit s
 - current top delivery surface: `get_unified_system_consumer_summary()`
 - current observability evidence-review surface: `get_observability_evidence_review_summary()`
 - current observability evidence-review audit surface: `get_observability_evidence_review_stage_lock_audit()`
+- current cross-band bounded evidence-review surfaces:
+  - `get_cross_band_evidence_review_summary_window(...)`
+  - `get_cross_band_evidence_review_summary_event_order_window(...)`
 
 ---
 
@@ -141,6 +144,12 @@ Observability evidence review now has an explicit consistency/stage-lock audit s
 - System-wide evidence review v1.1 behavior was revalidated with the real `get_observability_evidence_review_summary()` surface active:
   - READY/PARTIAL/UNAVAILABLE contract remained unchanged
   - no implementation/test correction was required
+- `get_cross_band_evidence_review_summary_window(...)` and `get_cross_band_evidence_review_summary_event_order_window(...)` are present in `src/qd_perception/neutral_family_memory_v1.py` as bounded read-only review mappings over:
+  - `get_cross_band_self_check_summary_window(...)`
+  - `get_cross_band_self_check_summary_event_order_window(...)`
+  - `get_cross_band_self_check_window_comparator(...)` as supporting context only
+- Focused bounded cross-band evidence-review tests now exist in:
+  - `tests/test_cross_band_evidence_review_windowed.py`
 
 ### What is inferred but not yet verified
 - Whether qd_perception_spine should ultimately live inside an existing GitHub repo or become its own Git repo
@@ -154,6 +163,28 @@ Observability evidence review now has an explicit consistency/stage-lock audit s
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-04 (Cross-Band Evidence Review Summary Windowed v1.1)
+#### What we built
+- validated and completed bounded cross-band evidence-review mapping surfaces:
+  - `get_cross_band_evidence_review_summary_window(...)`
+  - `get_cross_band_evidence_review_summary_event_order_window(...)`
+- important truth note: these two API blocks were already present in `neutral_family_memory_v1.py` before this session; work in this session was focused contract verification, focused tests, and ledger/run-artifact updates
+
+#### Files changed
+- `tests/test_cross_band_evidence_review_windowed.py`
+- `BUILD_LEDGER.md`
+- `runs/cross_band_evidence_review_summary_windowed_v1_1_transcript.txt`
+- `runs/cross_band_evidence_review_summary_windowed_v1_1_delivery.txt`
+
+#### Tests run
+- focused bounded review tests with `PYTHONPATH=src`: `11 passed, 1 warning`
+- adjacent cross-band tests with `PYTHONPATH=src`: `34 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `327 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
 ### Session date: 2026-04-04
 #### What we built
 - verified/finished Unified System Consumer Consistency / Stage Lock v1.1
@@ -278,28 +309,29 @@ Observability evidence review now has an explicit consistency/stage-lock audit s
 - `get_unified_system_consumer_summary()`
 - `get_observability_evidence_review_summary()`
 - `get_observability_evidence_review_stage_lock_audit()`
+- `get_cross_band_evidence_review_summary_window(...)`
+- `get_cross_band_evidence_review_summary_event_order_window(...)`
 
 ---
 
 ## Next Step
 ### Immediate next step
-System-Wide Evidence Review Revalidation v1.1b
+Observability Evidence Review Summary Windowed v1.1
 
 ### Why this is the next honest step
-System evidence review should now be revalidated with both observability review and observability review stage-lock surfaces present and contract-stable.
+Cross-band bounded evidence-review surfaces are now available for both index and event-order windows. The missing substantive capability is observability-side bounded evidence-review mapping so bounded system-level composition can avoid scope asymmetry.
 
 ### What it must use
-- `get_system_evidence_review_summary()`
-- `get_observability_evidence_review_stage_lock_audit()`
-- `get_system_evidence_review_stage_lock_audit()`
-- `get_system_evidence_review_consumer_gate()`
-- `get_system_evidence_consumer_summary()`
-- existing system evidence stack surfaces only through established contracts
+- `get_pressure_capture_quality_summary_window(...)`
+- `get_pressure_capture_quality_summary_event_order_window(...)`
+- `get_pressure_capture_quality_window_comparator(...)` only as supporting context/integrity
+- existing observability summary contracts as semantic anchor without full-range equivalence claims
 
 ### What it must NOT do
 - invent new truth predicates
 - reopen lower evidence or observability semantics
 - add hidden direct lower-band dependencies outside established composition surfaces
+- imply bounded outputs are full-range equivalent
 - mutate lineage, create events, or rewrite history
 
 ---
@@ -348,7 +380,7 @@ Read these sections first:
 5. Next Step
 
 Current verified suite count:
-- Full suite: 316 passed, 1 warning
+- Full suite: 327 passed, 1 warning
 
 Current frozen top surface:
 - get_unified_system_consumer_posture_summary()
@@ -366,7 +398,7 @@ Current observability evidence-review audit surface:
 - get_observability_evidence_review_stage_lock_audit()
 
 Immediate next target:
-- System-Wide Evidence Review Revalidation v1.1b
+- Observability Evidence Review Summary Windowed v1.1
 
 Do not reopen locked lower semantics.
 Do not invent new predicates.
@@ -385,6 +417,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - Added focused observability evidence review tests
 - Revalidated System-Wide Evidence Review v1.1 (v1.1a) with no contract correction required
 - Implemented Observability Evidence Review Consistency / Stage Lock v1.1
+- Validated and completed Cross-Band Evidence Review Summary Windowed v1.1
 - Verified full suite on the updated frontier
 
 ### Verified today
@@ -392,7 +425,8 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - unified summary delivery surface is present in `neutral_family_memory_v1.py`
 - observability evidence-review surface is present in `neutral_family_memory_v1.py`
 - observability evidence-review stage-lock surface is present in `neutral_family_memory_v1.py`
-- final full suite reported green at 316 passed, 1 warning
+- bounded cross-band evidence-review windowed surfaces are present in `neutral_family_memory_v1.py`
+- final full suite reported green at 327 passed, 1 warning
 - focused system-evidence revalidation suite reported green at 28 passed, 1 warning
 - top unified posture stage lock present and validated
 - repo initialized and first local checkpoint commit created
@@ -404,7 +438,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ### First action next session
 - read BUILD_LEDGER.md first
-- run System-Wide Evidence Review Revalidation v1.1b
+- build Observability Evidence Review Summary Windowed v1.1
 - update ledger again before stopping
 
 ### Pressure items / risks
