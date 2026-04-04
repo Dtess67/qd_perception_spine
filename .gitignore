@@ -1,0 +1,37 @@
+# Python cache / bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Pytest / test caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / editor
+.idea/
+.vscode/
+
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# Local temp artifacts
+tmp/
+temp/
+
+# Build / distribution
+build/
+dist/
+*.egg-info/
+
+# Project run artifacts
+runs/
+
+# Jupyter
+.ipynb_checkpoints/
