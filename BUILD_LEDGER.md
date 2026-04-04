@@ -20,9 +20,9 @@ This is the single source of truth for:
 - `X:/Dev/QD_Main/QD_v3`
 - GitHub repo list exists; qd_perception_spine is now initialized as a local Git repo
 
-**Current branch:** `master`
+**Current branch:** `main`
 
-**Last known good commit:** `7e6a418beba5932067b062bb390bd0d883c3ba27`
+**Last known good commit:** `89c77e3ee7d03e030b2e788ef33ab3408f18a319`
 
 **Working rule:** Truth above comfort. False certainty is worse than hold.
 
@@ -33,7 +33,7 @@ This is the single source of truth for:
 Cross-Band Evidence Review Summary Windowed v1.1
 
 ### Last completed layer
-Cross-Band Evidence Review Summary Windowed v1.1 implemented and verified
+Cross-Band Evidence Review Summary Windowed v1.1 present, validated, and committed
 
 ### Current recommended next layer
 Observability Evidence Review Summary Windowed v1.1
@@ -150,6 +150,8 @@ Cross-band bounded evidence-review mapping now exists for index and event-order 
   - `get_cross_band_self_check_window_comparator(...)` as supporting context only
 - Focused bounded cross-band evidence-review tests now exist in:
   - `tests/test_cross_band_evidence_review_windowed.py`
+- Latest verified full-suite baseline:
+  - `327 passed, 1 warning`
 
 ### What is inferred but not yet verified
 - Whether qd_perception_spine should ultimately live inside an existing GitHub repo or become its own Git repo
@@ -163,6 +165,27 @@ Cross-band bounded evidence-review mapping now exists for index and event-order 
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-04 (End-of-day closeout)
+#### What we finalized
+- built/validated Observability Evidence Review Consistency / Stage Lock v1.1
+- revalidated System-Wide Evidence Review v1.1a; no code correction required
+- validated and then committed Cross-Band Evidence Review Summary Windowed v1.1
+- important truth note: bounded cross-band source diff in `src/qd_perception/neutral_family_memory_v1.py` was explicitly inspected, confirmed required for public bounded APIs, and then committed
+
+#### Key commits (today)
+- `67576de4d400520aeacb3b31834d05c98e0fe972` - Add observability evidence review stage lock v1.1
+- `ec6c62711430e015e64280be40eb7e5376a6e520` - Record system-wide evidence review v1.1a revalidation
+- `f639d2ef56736952e17dcdf17f9b8274b9df676e` - Add validation for cross-band evidence review windowed v1.1
+- `89c77e3ee7d03e030b2e788ef33ab3408f18a319` - Add cross-band evidence review windowed v1.1
+
+#### Key test baselines
+- `316 passed, 1 warning` after observability evidence-review stage lock work
+- `327 passed, 1 warning` after bounded cross-band review validation/commit
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
 ### Session date: 2026-04-04 (Cross-Band Evidence Review Summary Windowed v1.1)
 #### What we built
 - validated and completed bounded cross-band evidence-review mapping surfaces:
@@ -325,12 +348,16 @@ Cross-band bounded evidence-review surfaces are now available for both index and
 - `get_pressure_capture_quality_summary_window(...)`
 - `get_pressure_capture_quality_summary_event_order_window(...)`
 - `get_pressure_capture_quality_window_comparator(...)` only as supporting context/integrity
-- existing observability summary contracts as semantic anchor without full-range equivalence claims
+- semantic discipline anchor only: `get_observability_evidence_review_summary()`
 
 ### What it must NOT do
 - invent new truth predicates
 - reopen lower evidence or observability semantics
 - add hidden direct lower-band dependencies outside established composition surfaces
+- no lower-band bucket meaning changes
+- no window semantic changes
+- no comparator delta-direction reinterpretation
+- no hidden cross-band/system-gate predicates
 - imply bounded outputs are full-range equivalent
 - mutate lineage, create events, or rewrite history
 
@@ -340,14 +367,20 @@ Cross-band bounded evidence-review surfaces are now available for both index and
 ### Commit status
 - Repo initialized: YES
 - Changes committed: YES
-- Changes pushed: NO
+- Changes pushed: YES (to `origin/main`)
+- Repo clean: YES
+- Branch: `main`
+- Upstream: `origin/main`
+- Synced with upstream: YES (HEAD at `origin/main`)
 
-### First checkpoint details
-- commit hash: `7e6a418beba5932067b062bb390bd0d883c3ba27`
-- branch name: `master`
+### Latest relevant commits (today)
+- `89c77e3ee7d03e030b2e788ef33ab3408f18a319` - Add cross-band evidence review windowed v1.1
+- `f639d2ef56736952e17dcdf17f9b8274b9df676e` - Add validation for cross-band evidence review windowed v1.1
+- `67576de4d400520aeacb3b31834d05c98e0fe972` - Add observability evidence review stage lock v1.1
+- `ec6c62711430e015e64280be40eb7e5376a6e520` - Record system-wide evidence review v1.1a revalidation
 
 ### Commit to make next
-**Suggested commit message:** Update build ledger and verify unified system consumer stage lock v1.1
+**Suggested commit message:** Add observability evidence review summary windowed v1.1
 
 ### Files that should be committed
 - `src/`
@@ -418,6 +451,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - Revalidated System-Wide Evidence Review v1.1 (v1.1a) with no contract correction required
 - Implemented Observability Evidence Review Consistency / Stage Lock v1.1
 - Validated and completed Cross-Band Evidence Review Summary Windowed v1.1
+- Committed required bounded cross-band source diff after explicit necessity audit
 - Verified full suite on the updated frontier
 
 ### Verified today
@@ -438,13 +472,14 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ### First action next session
 - read BUILD_LEDGER.md first
-- build Observability Evidence Review Summary Windowed v1.1
+- inspect/build Observability Evidence Review Summary Windowed v1.1
 - update ledger again before stopping
 
 ### Pressure items / risks
 - continuity drift if ledger is not kept current
 - repo drift if Git is not initialized soon
 - artifact clutter if `runs/` is committed indiscriminately
+- bounded system sampler remains premature until bounded observability evidence-review mapping exists
 
 ---
 
