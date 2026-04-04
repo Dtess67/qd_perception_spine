@@ -5330,6 +5330,367 @@ class NeutralFamilyMemoryV1:
             "history_rewrite_performed": False,
         }
 
+    def _build_cross_band_bounded_evidence_review(
+        self,
+        *,
+        bounded_summary,
+        comparator_summary,
+        review_mode: str,
+        scope_label: str,
+    ) -> dict:
+        def _as_int(v) -> int:
+            if isinstance(v, bool):
+                return int(v)
+            if isinstance(v, (int, float)):
+                return int(v)
+            return 0
+
+        state_counts = (
+            bounded_summary.get("self_check_state_counts", {})
+            if isinstance(bounded_summary.get("self_check_state_counts"), dict)
+            else {
+                "CROSS_BAND_ALIGNMENT_OBSERVED": 0,
+                "CROSS_BAND_CONTRADICTION_OBSERVED": 0,
+                "CROSS_BAND_PARTIAL": 0,
+                "CROSS_BAND_UNAVAILABLE": 0,
+            }
+        )
+        contradiction_counts = (
+            bounded_summary.get("contradiction_flag_counts", {})
+            if isinstance(bounded_summary.get("contradiction_flag_counts"), dict)
+            else {}
+        )
+        event_type_counts = (
+            bounded_summary.get("event_type_counts", {})
+            if isinstance(bounded_summary.get("event_type_counts"), dict)
+            else {}
+        )
+
+        summary_available = bool(bounded_summary.get("summary_available", False))
+        auditable_event_count = _as_int(bounded_summary.get("auditable_event_count", 0))
+        alignment_count = _as_int(state_counts.get("CROSS_BAND_ALIGNMENT_OBSERVED", 0))
+        contradiction_count = _as_int(state_counts.get("CROSS_BAND_CONTRADICTION_OBSERVED", 0))
+        partial_count = _as_int(state_counts.get("CROSS_BAND_PARTIAL", 0))
+        unavailable_count = _as_int(state_counts.get("CROSS_BAND_UNAVAILABLE", 0))
+
+        ready = (
+            summary_available
+            and auditable_event_count > 0
+            and alignment_count == auditable_event_count
+            and contradiction_count == 0
+            and partial_count == 0
+            and unavailable_count == 0
+        )
+        meaningful_surface_exists = summary_available and auditable_event_count > 0
+
+        if ready:
+            review_state = "CROSS_BAND_EVIDENCE_REVIEW_READY"
+            review_reason = "BOUNDED_ALIGNMENT_OBSERVED_WITH_AUDITABLE_SURFACE"
+        elif meaningful_surface_exists:
+            review_state = "CROSS_BAND_EVIDENCE_REVIEW_PARTIAL"
+            review_reason = "BOUNDED_MIXED_OR_LIMITED_EVIDENCE_SURFACE"
+        else:
+            review_state = "CROSS_BAND_EVIDENCE_REVIEW_UNAVAILABLE"
+            review_reason = "BOUNDED_EVIDENCE_SURFACE_INSUFFICIENT_OR_MISSING"
+
+        warnings = []
+        warnings.extend(bounded_summary.get("warnings", []))
+        if isinstance(comparator_summary, dict):
+            warnings.extend(comparator_summary.get("warnings", []))
+            mismatch_flags = comparator_summary.get("mismatch_flags", [])
+            if isinstance(mismatch_flags, list):
+                mismatch_set = set(mismatch_flags)
+                mismatch_set.discard("NO_MISMATCH_DETECTED")
+                if mismatch_set:
+                    warnings.append("COMPARATOR_CONTEXT_MISMATCH_FLAGS_PRESENT")
+        else:
+            warnings.append("CROSS_BAND_WINDOW_COMPARATOR_SURFACE_MISSING")
+
+        comparator_reason = (
+            comparator_summary.get("reason")
+            if isinstance(comparator_summary, dict)
+            else "COMPARATOR_CONTEXT_UNAVAILABLE"
+        )
+
+        explanation_lines = [
+            f"Review state: {review_state}",
+            f"Review reason: {review_reason}",
+            f"Bounded scope: {scope_label}",
+            f"Auditable events: {auditable_event_count}",
+            "Bounded review posture is scope-limited and not equivalent to full-range cross-band review.",
+            f"Comparator context reason (non-predicate): {comparator_reason}",
+        ]
+        if auditable_event_count == 0:
+            explanation_lines.append("Bounded evidence surface is thin (0 auditable events).")
+
+        return {
+            "review_available": True,
+            "review_mode": review_mode,
+            "review_state": review_state,
+            "review_reason": review_reason,
+            "window_spec": (
+                bounded_summary.get("window_spec", {})
+                if isinstance(bounded_summary.get("window_spec"), dict)
+                else {}
+            ),
+            "evidence_scope": {
+                "bounded_scope": scope_label,
+                "bounded_summary_mode": bounded_summary.get("summary_mode"),
+                "bounded_summary_reason": bounded_summary.get("reason"),
+                "total_transition_events": _as_int(bounded_summary.get("total_transition_events", 0)),
+                "window_event_count": _as_int(bounded_summary.get("window_event_count", 0)),
+                "total_auditable_events": auditable_event_count,
+                "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                "coverage_notes": list(bounded_summary.get("explanation_lines", [])),
+            },
+            "evidence_counts": {
+                "self_check_state_counts": state_counts,
+                "contradiction_flag_counts": contradiction_counts,
+                "event_type_counts": event_type_counts,
+                "total_transition_events": _as_int(bounded_summary.get("total_transition_events", 0)),
+                "window_event_count": _as_int(bounded_summary.get("window_event_count", 0)),
+                "total_auditable_events": auditable_event_count,
+            },
+            "supporting_surfaces": {
+                "bounded_cross_band_self_check_summary": bounded_summary,
+                "cross_band_window_comparator_context": comparator_summary,
+            },
+            "warnings": sorted(set(warnings)),
+            "explanation_lines": explanation_lines,
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    def get_cross_band_evidence_review_summary_window(
+        self,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Cross-Band Evidence Review Summary Windowed v1.1.
+        Read-only bounded review mapping over index-window cross-band self-check summary.
+        """
+        summary_api_name = "get_cross_band_self_check_summary_window"
+        comparator_api_name = "get_cross_band_self_check_window_comparator"
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            bounded_summary,
+            comparator_summary,
+            warnings: list[str],
+        ) -> dict:
+            return {
+                "review_available": False,
+                "review_mode": "CROSS_BAND_EVIDENCE_REVIEW_WINDOW",
+                "review_state": "CROSS_BAND_EVIDENCE_REVIEW_UNAVAILABLE",
+                "review_reason": reason,
+                "window_spec": {},
+                "evidence_scope": {
+                    "bounded_scope": "INDEX_WINDOW",
+                    "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                    "coverage_notes": [explanation],
+                },
+                "evidence_counts": {
+                    "self_check_state_counts": {
+                        "CROSS_BAND_ALIGNMENT_OBSERVED": 0,
+                        "CROSS_BAND_CONTRADICTION_OBSERVED": 0,
+                        "CROSS_BAND_PARTIAL": 0,
+                        "CROSS_BAND_UNAVAILABLE": 0,
+                    },
+                    "contradiction_flag_counts": {},
+                    "event_type_counts": {},
+                    "total_transition_events": 0,
+                    "window_event_count": 0,
+                    "total_auditable_events": 0,
+                },
+                "supporting_surfaces": {
+                    "bounded_cross_band_self_check_summary": bounded_summary,
+                    "cross_band_window_comparator_context": comparator_summary,
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        if not callable(getattr(self, summary_api_name, None)):
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation="Required bounded cross-band source surface missing: get_cross_band_self_check_summary_window.",
+                bounded_summary=None,
+                comparator_summary=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+
+        comparator_summary = None
+        if callable(getattr(self, comparator_api_name, None)):
+            try:
+                comparator_summary = self.get_cross_band_self_check_window_comparator(
+                    start_index=start_index,
+                    end_index=end_index,
+                    index_max_events=max_events,
+                )
+            except Exception:
+                comparator_summary = None
+
+        try:
+            bounded_summary = self.get_cross_band_self_check_summary_window(
+                start_index=start_index,
+                end_index=end_index,
+                max_events=max_events,
+            )
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_cross_band_self_check_summary_window() raised {type(exc).__name__}.",
+                bounded_summary=None,
+                comparator_summary=comparator_summary,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "CROSS_BAND_WINDOW_SUMMARY_CALL_FAILED"],
+            )
+
+        shape_ok = (
+            isinstance(bounded_summary, dict)
+            and bounded_summary.get("summary_mode") == "CROSS_BAND_SELF_CHECK_WINDOW"
+            and isinstance(bounded_summary.get("window_spec"), dict)
+            and isinstance(bounded_summary.get("self_check_state_counts"), dict)
+        )
+        if not shape_ok:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation="Bounded cross-band window summary shape is invalid for evidence-review mapping.",
+                bounded_summary=bounded_summary,
+                comparator_summary=comparator_summary,
+                warnings=["REQUIRED_SURFACE_SHAPE_INVALID"],
+            )
+
+        return self._build_cross_band_bounded_evidence_review(
+            bounded_summary=bounded_summary,
+            comparator_summary=comparator_summary,
+            review_mode="CROSS_BAND_EVIDENCE_REVIEW_WINDOW",
+            scope_label="INDEX_WINDOW",
+        )
+
+    def get_cross_band_evidence_review_summary_event_order_window(
+        self,
+        start_event_order: Optional[float] = None,
+        end_event_order: Optional[float] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Cross-Band Evidence Review Summary Event-Order Windowed v1.1.
+        Read-only bounded review mapping over event-order-window cross-band self-check summary.
+        """
+        summary_api_name = "get_cross_band_self_check_summary_event_order_window"
+        comparator_api_name = "get_cross_band_self_check_window_comparator"
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            bounded_summary,
+            comparator_summary,
+            warnings: list[str],
+        ) -> dict:
+            return {
+                "review_available": False,
+                "review_mode": "CROSS_BAND_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+                "review_state": "CROSS_BAND_EVIDENCE_REVIEW_UNAVAILABLE",
+                "review_reason": reason,
+                "window_spec": {},
+                "evidence_scope": {
+                    "bounded_scope": "EVENT_ORDER_WINDOW",
+                    "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                    "coverage_notes": [explanation],
+                },
+                "evidence_counts": {
+                    "self_check_state_counts": {
+                        "CROSS_BAND_ALIGNMENT_OBSERVED": 0,
+                        "CROSS_BAND_CONTRADICTION_OBSERVED": 0,
+                        "CROSS_BAND_PARTIAL": 0,
+                        "CROSS_BAND_UNAVAILABLE": 0,
+                    },
+                    "contradiction_flag_counts": {},
+                    "event_type_counts": {},
+                    "total_transition_events": 0,
+                    "window_event_count": 0,
+                    "total_auditable_events": 0,
+                },
+                "supporting_surfaces": {
+                    "bounded_cross_band_self_check_summary": bounded_summary,
+                    "cross_band_window_comparator_context": comparator_summary,
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        if not callable(getattr(self, summary_api_name, None)):
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required bounded cross-band source surface missing: "
+                    "get_cross_band_self_check_summary_event_order_window."
+                ),
+                bounded_summary=None,
+                comparator_summary=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+
+        comparator_summary = None
+        if callable(getattr(self, comparator_api_name, None)):
+            try:
+                comparator_summary = self.get_cross_band_self_check_window_comparator(
+                    start_event_order=start_event_order,
+                    end_event_order=end_event_order,
+                    event_order_max_events=max_events,
+                )
+            except Exception:
+                comparator_summary = None
+
+        try:
+            bounded_summary = self.get_cross_band_self_check_summary_event_order_window(
+                start_event_order=start_event_order,
+                end_event_order=end_event_order,
+                max_events=max_events,
+            )
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_cross_band_self_check_summary_event_order_window() raised {type(exc).__name__}.",
+                bounded_summary=None,
+                comparator_summary=comparator_summary,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "CROSS_BAND_EVENT_ORDER_WINDOW_SUMMARY_CALL_FAILED"],
+            )
+
+        shape_ok = (
+            isinstance(bounded_summary, dict)
+            and bounded_summary.get("summary_mode") == "CROSS_BAND_SELF_CHECK_EVENT_ORDER_WINDOW"
+            and isinstance(bounded_summary.get("window_spec"), dict)
+            and isinstance(bounded_summary.get("self_check_state_counts"), dict)
+        )
+        if not shape_ok:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation="Bounded cross-band event-order summary shape is invalid for evidence-review mapping.",
+                bounded_summary=bounded_summary,
+                comparator_summary=comparator_summary,
+                warnings=["REQUIRED_SURFACE_SHAPE_INVALID"],
+            )
+
+        return self._build_cross_band_bounded_evidence_review(
+            bounded_summary=bounded_summary,
+            comparator_summary=comparator_summary,
+            review_mode="CROSS_BAND_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            scope_label="EVENT_ORDER_WINDOW",
+        )
+
     def get_observability_evidence_review_summary(self) -> dict:
         """
         Observability Evidence Review Summary v1.0.
