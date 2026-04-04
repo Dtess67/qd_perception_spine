@@ -30,21 +30,23 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-Unified System Consumer Consistency / Stage Lock v1.1
+Observability Evidence Review Summary v1.0
 
 ### Last completed layer
-Unified System Consumer Consistency / Stage Lock v1.1 verified
+Observability Evidence Review Summary v1.0 implemented and verified
 
 ### Current recommended next layer
-Unified System Consumer Summary / Delivery v1.2
+System-Wide Evidence Review Revalidation v1.1a
 
 ### Why this next layer exists
-The unified top posture and its stage-lock audit now both exist. The next honest move is a pure packaging/delivery layer above those two surfaces with no new predicates and no reopening of lower-band semantics.
+The missing observability-side evidence review contract now exists. The next honest step is to revalidate system-level evidence review behavior with this real observability surface active, without reopening lower-band semantics.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
 - current verified top audit surface: `get_unified_system_consumer_posture_stage_lock_audit()`
 - audit relationship: `get_unified_system_consumer_posture_stage_lock_audit()` freezes/audits `get_unified_system_consumer_posture_summary()`
+- current top delivery surface: `get_unified_system_consumer_summary()`
+- current observability evidence-review surface: `get_observability_evidence_review_summary()`
 
 ---
 
@@ -66,6 +68,7 @@ The unified top posture and its stage-lock audit now both exist. The next honest
   - Umbrella Lock Integration v1.0
   - System Lock Consumer Gate v1.1
 - Evidence review stack present and corrected:
+  - Observability Evidence Review Summary v1.0
   - Cross-Band Evidence Review Summary v1.0
   - System-Wide Evidence Review v1.1
   - System Evidence Review Consistency / Stage Lock v1.2
@@ -110,6 +113,12 @@ The unified top posture and its stage-lock audit now both exist. The next honest
   - `get_system_lock_gate_posture()`
 - `get_unified_system_consumer_posture_stage_lock_audit()` is present in `src/qd_perception/neutral_family_memory_v1.py`
 - `get_unified_system_consumer_posture_stage_lock_audit()` is the current verified top audit surface, freezing/auditing `get_unified_system_consumer_posture_summary()`
+- `get_unified_system_consumer_summary()` is present in `src/qd_perception/neutral_family_memory_v1.py` as a pure read-only packaging layer above:
+  - `get_unified_system_consumer_posture_summary()`
+  - `get_unified_system_consumer_posture_stage_lock_audit()`
+- `get_observability_evidence_review_summary()` is present in `src/qd_perception/neutral_family_memory_v1.py` as a read-only observability evidence-review surface composed only from:
+  - `get_pressure_capture_quality_summary()`
+  - `get_observability_stage_lock_audit()`
 - Minimal demo invocation returned:
   - `audit_available = true`
   - `audit_mode = UNIFIED_SYSTEM_CONSUMER_STAGE_LOCK`
@@ -117,6 +126,10 @@ The unified top posture and its stage-lock audit now both exist. The next honest
   - `reason = ALL_CONSISTENCY_CHECKS_PASSED`
 - Focused unified stage-lock tests now exist in:
   - `tests/test_unified_system_consumer_posture_stage_lock.py`
+- Focused unified consumer summary tests now exist in:
+  - `tests/test_unified_system_consumer_summary.py`
+- Focused observability evidence review tests now exist in:
+  - `tests/test_observability_evidence_review.py`
 
 ### What is inferred but not yet verified
 - Whether qd_perception_spine should ultimately live inside an existing GitHub repo or become its own Git repo
@@ -150,6 +163,53 @@ The unified top posture and its stage-lock audit now both exist. The next honest
 - pytest cache permission warning
 - temp symlink cleanup PermissionError warning (non-blocking)
 
+### Session date: 2026-04-04 (Unified Summary / Delivery v1.2)
+#### What we built
+- implemented `get_unified_system_consumer_summary()` as a pure read-only packaging/delivery layer
+- composition constrained to:
+  - `get_unified_system_consumer_posture_summary()`
+  - `get_unified_system_consumer_posture_stage_lock_audit()`
+- no new truth predicates added; summary state/reason package unified posture state/reason directly
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_unified_system_consumer_summary.py`
+- `BUILD_LEDGER.md`
+- `runs/unified_system_consumer_summary_v1_2_transcript.txt`
+- `runs/unified_system_consumer_summary_v1_2_delivery.txt`
+
+#### Tests run
+- focused unified-stack tests with `PYTHONPATH=src`: `18 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `305 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
+### Session date: 2026-04-04 (Observability Evidence Review Summary v1.0)
+#### What we built
+- implemented `get_observability_evidence_review_summary()` as the missing observability-side read-only evidence-review surface
+- composition constrained to:
+  - `get_pressure_capture_quality_summary()`
+  - `get_observability_stage_lock_audit()`
+- no direct lower observability internal calls were added in this new review surface
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_observability_evidence_review.py`
+- `tests/test_system_evidence_review.py`
+- `BUILD_LEDGER.md`
+- `runs/observability_evidence_review_summary_v1_0_transcript.txt`
+- `runs/observability_evidence_review_summary_v1_0_delivery.txt`
+
+#### Tests run
+- focused tests with `PYTHONPATH=src`: `14 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `310 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
 ---
 
 ## Current APIs / Surfaces Added
@@ -161,25 +221,27 @@ The unified top posture and its stage-lock audit now both exist. The next honest
 - `get_system_lock_gate_posture()`
 - `get_unified_system_consumer_posture_summary()`
 - `get_unified_system_consumer_posture_stage_lock_audit()`
+- `get_unified_system_consumer_summary()`
+- `get_observability_evidence_review_summary()`
 
 ---
 
 ## Next Step
 ### Immediate next step
-Unified System Consumer Summary / Delivery v1.2
+System-Wide Evidence Review Revalidation v1.1a
 
 ### Why this is the next honest step
-The unified top posture and its stage-lock audit now both exist. The next honest move is a pure packaging/delivery layer above those two surfaces.
+System evidence review now has a real observability evidence-review source. Revalidating v1.1 behavior under this real source is the next honest step before adding any new upward layer.
 
 ### What it must use
-- `get_unified_system_consumer_posture_summary()`
-- `get_unified_system_consumer_posture_stage_lock_audit()`
+- `get_system_evidence_review_summary()`
+- `get_observability_evidence_review_summary()`
+- existing cross-band/system-lock surfaces only through established system evidence review contracts
 
 ### What it must NOT do
 - invent new truth predicates
-- bypass the unified top surfaces
 - reopen lower evidence or observability semantics
-- call lower-band evidence/observability APIs as hidden dependencies for posture resolution
+- add hidden direct lower-band dependencies outside established composition surfaces
 - mutate lineage, create events, or rewrite history
 
 ---
@@ -228,7 +290,7 @@ Read these sections first:
 5. Next Step
 
 Current verified suite count:
-- Full suite: 300 passed, 1 warning
+- Full suite: 310 passed, 1 warning
 
 Current frozen top surface:
 - get_unified_system_consumer_posture_summary()
@@ -236,8 +298,14 @@ Current frozen top surface:
 Current verified top audit surface:
 - get_unified_system_consumer_posture_stage_lock_audit()
 
+Current top delivery surface:
+- get_unified_system_consumer_summary()
+
+Current observability evidence-review surface:
+- get_observability_evidence_review_summary()
+
 Immediate next target:
-- Unified System Consumer Summary / Delivery v1.2
+- System-Wide Evidence Review Revalidation v1.1a
 
 Do not reopen locked lower semantics.
 Do not invent new predicates.
@@ -250,11 +318,17 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 ### Built today
 - Validated and finalized Unified System Consumer Consistency / Stage Lock v1.1
 - Added focused stage-lock drift and guardrail tests
+- Implemented Unified System Consumer Summary / Delivery v1.2
+- Added focused unified consumer summary tests
+- Implemented Observability Evidence Review Summary v1.0
+- Added focused observability evidence review tests
 - Verified full suite on the updated frontier
 
 ### Verified today
 - unified posture stage-lock audit surface is present in `neutral_family_memory_v1.py`
-- final full suite reported green at 300 passed, 1 warning
+- unified summary delivery surface is present in `neutral_family_memory_v1.py`
+- observability evidence-review surface is present in `neutral_family_memory_v1.py`
+- final full suite reported green at 310 passed, 1 warning
 - top unified posture stage lock present and validated
 - repo initialized and first local checkpoint commit created
 
@@ -265,7 +339,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ### First action next session
 - read BUILD_LEDGER.md first
-- build Unified System Consumer Summary / Delivery v1.2
+- run System-Wide Evidence Review Revalidation v1.1a against the new observability evidence-review surface
 - update ledger again before stopping
 
 ### Pressure items / risks

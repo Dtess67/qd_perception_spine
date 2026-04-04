@@ -138,6 +138,8 @@ class TestSystemEvidenceReview:
                 "explanation_lines": ["observability quality available"],
             }
         )
+        # Explicitly simulate missing dedicated observability review surface.
+        mem.get_observability_evidence_review_summary = None
 
         out = mem.get_system_evidence_review_summary()
 
@@ -273,6 +275,8 @@ class TestSystemEvidenceReview:
                 "explanation_lines": ["observability quality surface limited"],
             }
         )
+        # Explicitly simulate missing dedicated observability review surface.
+        mem.get_observability_evidence_review_summary = None
 
         out = mem.get_system_evidence_review_summary()
 

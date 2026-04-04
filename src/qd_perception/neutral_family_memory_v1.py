@@ -5330,6 +5330,263 @@ class NeutralFamilyMemoryV1:
             "history_rewrite_performed": False,
         }
 
+    def get_observability_evidence_review_summary(self) -> dict:
+        """
+        Observability Evidence Review Summary v1.0.
+        Read-only observability-side evidence review composed only from locked observability outputs.
+        """
+        required_api_names = [
+            "get_pressure_capture_quality_summary",
+            "get_observability_stage_lock_audit",
+        ]
+
+        def _as_int(v) -> int:
+            if isinstance(v, bool):
+                return int(v)
+            if isinstance(v, (int, float)):
+                return int(v)
+            return 0
+
+        def _unavailable(
+            *,
+            review_reason: str,
+            explanation: str,
+            warnings: list[str],
+            quality_surface,
+            stage_lock_surface,
+        ) -> dict:
+            return {
+                "review_available": False,
+                "review_mode": "OBSERVABILITY_EVIDENCE_REVIEW",
+                "review_state": "OBSERVABILITY_EVIDENCE_REVIEW_UNAVAILABLE",
+                "review_reason": review_reason,
+                "supporting_surfaces": {
+                    "observability_pressure_capture_quality_summary": quality_surface,
+                    "observability_stage_lock_audit": stage_lock_surface,
+                },
+                "evidence_scope": {
+                    "stage_lock_state": "OBSERVABILITY_STAGE_LOCK_UNAVAILABLE",
+                    "stage_lock_reason": "OBSERVABILITY_STAGE_LOCK_UNAVAILABLE",
+                    "quality_summary_available": False,
+                    "quality_summary_mode": "UNAVAILABLE",
+                    "coverage_notes": [explanation],
+                },
+                "evidence_counts": {
+                    "total_transition_events": 0,
+                    "total_auditable_events": 0,
+                    "pressure_snapshot_present_count": 0,
+                    "pressure_snapshot_missing_count": 0,
+                    "audit_state_counts": {
+                        "PRESSURE_CAPTURE_AUDIT_VALID": 0,
+                        "PRESSURE_CAPTURE_AUDIT_INVALID": 0,
+                        "PRESSURE_CAPTURE_AUDIT_UNAVAILABLE": 0,
+                    },
+                    "capture_reason_counts": {
+                        "PRESSURE_CAPTURE_FULL": 0,
+                        "PRESSURE_CAPTURE_PARTIAL": 0,
+                        "PRESSURE_CAPTURE_FAILED": 0,
+                        "UNRECOGNIZED_CAPTURE_REASON": 0,
+                    },
+                    "recoverability_counts": {
+                        "FULLY_RECOVERABLE": 0,
+                        "PARTIALLY_RECOVERABLE": 0,
+                        "UNRECOVERABLE": 0,
+                    },
+                    "event_type_counts": {},
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        missing_required = [
+            name for name in required_api_names if not callable(getattr(self, name, None))
+        ]
+        if missing_required:
+            return _unavailable(
+                review_reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required observability evidence-review surfaces missing: "
+                    + ", ".join(missing_required)
+                    + "."
+                ),
+                warnings=["REQUIRED_SURFACE_MISSING"],
+                quality_surface=None,
+                stage_lock_surface=None,
+            )
+
+        quality_summary = None
+        stage_lock_audit = None
+
+        try:
+            quality_summary = self.get_pressure_capture_quality_summary()
+        except Exception as exc:
+            return _unavailable(
+                review_reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_pressure_capture_quality_summary() raised {type(exc).__name__}.",
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "OBSERVABILITY_QUALITY_SURFACE_CALL_FAILED"],
+                quality_surface=None,
+                stage_lock_surface=None,
+            )
+
+        try:
+            stage_lock_audit = self.get_observability_stage_lock_audit()
+        except Exception as exc:
+            return _unavailable(
+                review_reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_observability_stage_lock_audit() raised {type(exc).__name__}.",
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "OBSERVABILITY_STAGE_LOCK_SURFACE_CALL_FAILED"],
+                quality_surface=quality_summary,
+                stage_lock_surface=None,
+            )
+
+        quality_shape_ok = isinstance(quality_summary, dict)
+        stage_lock_shape_ok = (
+            isinstance(stage_lock_audit, dict)
+            and isinstance(stage_lock_audit.get("lock_state"), str)
+        )
+        if not quality_shape_ok or not stage_lock_shape_ok:
+            bad = []
+            if not quality_shape_ok:
+                bad.append("OBSERVABILITY_QUALITY_SURFACE_SHAPE_INVALID")
+            if not stage_lock_shape_ok:
+                bad.append("OBSERVABILITY_STAGE_LOCK_SURFACE_SHAPE_INVALID")
+            return _unavailable(
+                review_reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation="Required observability evidence-review surface shape invalid: " + ", ".join(bad) + ".",
+                warnings=bad,
+                quality_surface=quality_summary,
+                stage_lock_surface=stage_lock_audit,
+            )
+
+        stage_lock_state = str(stage_lock_audit.get("lock_state", "OBSERVABILITY_STAGE_LOCK_UNAVAILABLE"))
+        stage_lock_reason = str(stage_lock_audit.get("reason", "OBSERVABILITY_STAGE_LOCK_REASON_MISSING"))
+        stage_lock_available = bool(stage_lock_audit.get("audit_available", False))
+
+        quality_available = bool(quality_summary.get("summary_available", False))
+        quality_mode = str(quality_summary.get("summary_mode", "UNAVAILABLE"))
+        quality_reason = str(quality_summary.get("reason", "OBSERVABILITY_QUALITY_REASON_MISSING"))
+        total_transition = _as_int(quality_summary.get("total_transition_events", 0))
+        auditable = _as_int(quality_summary.get("auditable_event_count", 0))
+        snapshot_present = _as_int(quality_summary.get("pressure_snapshot_present_count", 0))
+        snapshot_missing = _as_int(quality_summary.get("pressure_snapshot_missing_count", 0))
+
+        audit_state_counts = (
+            dict(quality_summary.get("audit_state_counts", {}))
+            if isinstance(quality_summary.get("audit_state_counts"), dict)
+            else {
+                "PRESSURE_CAPTURE_AUDIT_VALID": 0,
+                "PRESSURE_CAPTURE_AUDIT_INVALID": 0,
+                "PRESSURE_CAPTURE_AUDIT_UNAVAILABLE": 0,
+            }
+        )
+        capture_reason_counts = (
+            dict(quality_summary.get("capture_reason_counts", {}))
+            if isinstance(quality_summary.get("capture_reason_counts"), dict)
+            else {
+                "PRESSURE_CAPTURE_FULL": 0,
+                "PRESSURE_CAPTURE_PARTIAL": 0,
+                "PRESSURE_CAPTURE_FAILED": 0,
+                "UNRECOGNIZED_CAPTURE_REASON": 0,
+            }
+        )
+        recoverability_counts = (
+            dict(quality_summary.get("recoverability_counts", {}))
+            if isinstance(quality_summary.get("recoverability_counts"), dict)
+            else {
+                "FULLY_RECOVERABLE": 0,
+                "PARTIALLY_RECOVERABLE": 0,
+                "UNRECOVERABLE": 0,
+            }
+        )
+        event_type_counts = (
+            dict(quality_summary.get("event_type_counts", {}))
+            if isinstance(quality_summary.get("event_type_counts"), dict)
+            else {}
+        )
+
+        valid_count = _as_int(audit_state_counts.get("PRESSURE_CAPTURE_AUDIT_VALID", 0))
+        invalid_count = _as_int(audit_state_counts.get("PRESSURE_CAPTURE_AUDIT_INVALID", 0))
+        unavailable_count = _as_int(audit_state_counts.get("PRESSURE_CAPTURE_AUDIT_UNAVAILABLE", 0))
+
+        meaningful_evidence_exists = auditable > 0
+        ready = (
+            quality_available
+            and stage_lock_available
+            and stage_lock_state == "OBSERVABILITY_STAGE_LOCKED"
+            and meaningful_evidence_exists
+            and invalid_count == 0
+            and unavailable_count == 0
+        )
+
+        if ready:
+            review_state = "OBSERVABILITY_EVIDENCE_REVIEW_READY"
+            review_reason = "LOCKED_WITH_FULLY_AUDITABLE_OBSERVABILITY_EVIDENCE"
+        elif meaningful_evidence_exists and (quality_available or stage_lock_available):
+            review_state = "OBSERVABILITY_EVIDENCE_REVIEW_PARTIAL"
+            review_reason = "LIMITED_OR_MIXED_OBSERVABILITY_EVIDENCE"
+        else:
+            review_state = "OBSERVABILITY_EVIDENCE_REVIEW_UNAVAILABLE"
+            review_reason = "OBSERVABILITY_EVIDENCE_SURFACE_INSUFFICIENT_OR_MISSING"
+
+        warnings = []
+        warnings.extend(quality_summary.get("warnings", []))
+        warnings.extend(stage_lock_audit.get("warnings", []))
+
+        supporting_surfaces = {
+            "observability_pressure_capture_quality_summary": quality_summary,
+            "observability_stage_lock_audit": stage_lock_audit,
+        }
+
+        evidence_scope = {
+            "stage_lock_state": stage_lock_state,
+            "stage_lock_reason": stage_lock_reason,
+            "quality_summary_available": quality_available,
+            "quality_summary_mode": quality_mode,
+            "quality_summary_reason": quality_reason,
+            "coverage_notes": (
+                list(quality_summary.get("explanation_lines", []))
+                + list(stage_lock_audit.get("explanation_lines", []))
+            ),
+        }
+        evidence_counts = {
+            "total_transition_events": total_transition,
+            "total_auditable_events": auditable,
+            "pressure_snapshot_present_count": snapshot_present,
+            "pressure_snapshot_missing_count": snapshot_missing,
+            "audit_state_counts": audit_state_counts,
+            "capture_reason_counts": capture_reason_counts,
+            "recoverability_counts": recoverability_counts,
+            "event_type_counts": event_type_counts,
+        }
+
+        explanation_lines = [
+            f"Review state: {review_state}",
+            f"Review reason: {review_reason}",
+            f"Observability stage lock: {stage_lock_state}",
+            f"Auditable events: {auditable}",
+            f"Audit valid/invalid/unavailable: {valid_count}/{invalid_count}/{unavailable_count}",
+        ]
+        if auditable == 0:
+            explanation_lines.append("No auditable observability evidence events are currently available.")
+
+        return {
+            "review_available": True,
+            "review_mode": "OBSERVABILITY_EVIDENCE_REVIEW",
+            "review_state": review_state,
+            "review_reason": review_reason,
+            "supporting_surfaces": supporting_surfaces,
+            "evidence_scope": evidence_scope,
+            "evidence_counts": evidence_counts,
+            "warnings": sorted(set(warnings)),
+            "explanation_lines": explanation_lines,
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
     def get_system_evidence_review_summary(self) -> dict:
         """
         Implementation of System-Wide Evidence Review v1.1.
@@ -6922,6 +7179,151 @@ class NeutralFamilyMemoryV1:
             },
             "warnings": sorted(set(warnings)),
             "explanation_lines": explanation_lines,
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    def get_unified_system_consumer_summary(self) -> dict:
+        """
+        Unified System Consumer Summary / Delivery v1.2.
+        Pure read-only packaging layer over unified posture summary and its stage-lock audit.
+        """
+        _POSTURE_API = "get_unified_system_consumer_posture_summary"
+        _STAGE_LOCK_API = "get_unified_system_consumer_posture_stage_lock_audit"
+
+        def _unavailable(
+            *,
+            summary_reason: str,
+            explanation: str,
+            posture_surface,
+            stage_lock_surface,
+            warnings: list[str],
+        ) -> dict:
+            return {
+                "summary_available": False,
+                "summary_mode": "UNIFIED_SYSTEM_CONSUMER_SUMMARY",
+                "summary_state": "SYSTEM_CONSUMER_UNAVAILABLE",
+                "summary_reason": summary_reason,
+                "packaged_consumer_posture": {
+                    "unified_posture_state": "SYSTEM_CONSUMER_UNAVAILABLE",
+                    "unified_posture_reason": "UNIFIED_POSTURE_UNAVAILABLE",
+                    "unified_stage_lock_state": "UNIFIED_SYSTEM_CONSUMER_STAGE_LOCK_UNAVAILABLE",
+                    "unified_stage_lock_reason": "UNIFIED_STAGE_LOCK_UNAVAILABLE",
+                },
+                "supporting_surfaces": {
+                    "unified_system_consumer_posture_summary": posture_surface,
+                    "unified_system_consumer_posture_stage_lock_audit": stage_lock_surface,
+                },
+                "explanation_lines": [explanation],
+                "warnings": sorted(set(warnings)),
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        required_missing = []
+        if not callable(getattr(self, _POSTURE_API, None)):
+            required_missing.append(_POSTURE_API)
+        if not callable(getattr(self, _STAGE_LOCK_API, None)):
+            required_missing.append(_STAGE_LOCK_API)
+        if required_missing:
+            return _unavailable(
+                summary_reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required unified consumer summary surface missing: "
+                    + ", ".join(required_missing)
+                    + "."
+                ),
+                posture_surface=None,
+                stage_lock_surface=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+
+        posture_surface = None
+        stage_lock_surface = None
+        try:
+            posture_surface = self.get_unified_system_consumer_posture_summary()
+        except Exception as exc:
+            return _unavailable(
+                summary_reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_unified_system_consumer_posture_summary() raised {type(exc).__name__}.",
+                posture_surface=None,
+                stage_lock_surface=None,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "UNIFIED_POSTURE_CALL_FAILED"],
+            )
+        try:
+            stage_lock_surface = self.get_unified_system_consumer_posture_stage_lock_audit()
+        except Exception as exc:
+            return _unavailable(
+                summary_reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_unified_system_consumer_posture_stage_lock_audit() raised {type(exc).__name__}.",
+                posture_surface=posture_surface,
+                stage_lock_surface=None,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "UNIFIED_STAGE_LOCK_CALL_FAILED"],
+            )
+
+        posture_shape_ok = (
+            isinstance(posture_surface, dict)
+            and isinstance(posture_surface.get("summary_state"), str)
+            and isinstance(posture_surface.get("summary_reason"), str)
+        )
+        stage_lock_shape_ok = (
+            isinstance(stage_lock_surface, dict)
+            and isinstance(stage_lock_surface.get("lock_state"), str)
+            and isinstance(stage_lock_surface.get("reason"), str)
+        )
+        if not posture_shape_ok or not stage_lock_shape_ok:
+            bad = []
+            if not posture_shape_ok:
+                bad.append("UNIFIED_POSTURE_SURFACE_SHAPE_INVALID")
+            if not stage_lock_shape_ok:
+                bad.append("UNIFIED_STAGE_LOCK_SURFACE_SHAPE_INVALID")
+            return _unavailable(
+                summary_reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation="Required unified consumer summary surface shape invalid: " + ", ".join(bad) + ".",
+                posture_surface=posture_surface,
+                stage_lock_surface=stage_lock_surface,
+                warnings=bad,
+            )
+
+        posture_state = str(posture_surface.get("summary_state", "SYSTEM_CONSUMER_UNAVAILABLE"))
+        posture_reason = str(posture_surface.get("summary_reason", "UNIFIED_POSTURE_REASON_MISSING"))
+        stage_lock_state = str(
+            stage_lock_surface.get("lock_state", "UNIFIED_SYSTEM_CONSUMER_STAGE_LOCK_UNAVAILABLE")
+        )
+        stage_lock_reason = str(stage_lock_surface.get("reason", "UNIFIED_STAGE_LOCK_REASON_MISSING"))
+
+        warnings = []
+        if isinstance(posture_surface.get("warnings"), list):
+            warnings.extend(posture_surface.get("warnings", []))
+        if isinstance(stage_lock_surface.get("warnings"), list):
+            warnings.extend(stage_lock_surface.get("warnings", []))
+
+        explanation_lines = [
+            f"Unified summary state: {posture_state}",
+            f"Unified summary reason: {posture_reason}",
+            f"Unified stage lock state: {stage_lock_state}",
+            f"Unified stage lock reason: {stage_lock_reason}",
+        ]
+
+        return {
+            "summary_available": True,
+            "summary_mode": "UNIFIED_SYSTEM_CONSUMER_SUMMARY",
+            "summary_state": posture_state,
+            "summary_reason": posture_reason,
+            "packaged_consumer_posture": {
+                "unified_posture_state": posture_state,
+                "unified_posture_reason": posture_reason,
+                "unified_stage_lock_state": stage_lock_state,
+                "unified_stage_lock_reason": stage_lock_reason,
+            },
+            "supporting_surfaces": {
+                "unified_system_consumer_posture_summary": posture_surface,
+                "unified_system_consumer_posture_stage_lock_audit": stage_lock_surface,
+            },
+            "explanation_lines": explanation_lines,
+            "warnings": sorted(set(warnings)),
             "lineage_mutation_performed": False,
             "event_creation_performed": False,
             "history_rewrite_performed": False,
