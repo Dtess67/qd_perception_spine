@@ -18,11 +18,11 @@ This is the single source of truth for:
 **Related repos/folders:**
 - `X:/Dev/QD_Main/truth_engine_v1`
 - `X:/Dev/QD_Main/QD_v3`
-- GitHub repo list exists, but qd_perception_spine is not currently initialized as a Git repo
+- GitHub repo list exists; qd_perception_spine is now initialized as a local Git repo
 
-**Current branch:** N/A — not a Git repo yet in this folder
+**Current branch:** `master`
 
-**Last known good commit:** N/A in this folder
+**Last known good commit:** `7e6a418beba5932067b062bb390bd0d883c3ba27`
 
 **Working rule:** Truth above comfort. False certainty is worse than hold.
 
@@ -33,13 +33,18 @@ This is the single source of truth for:
 Unified System Consumer Consistency / Stage Lock v1.1
 
 ### Last completed layer
-Unified System Consumer Consistency / Stage Lock v1.1 (read-only audit layer over unified posture)
+Unified System Consumer Consistency / Stage Lock v1.1 verified
 
 ### Current recommended next layer
-Unified System Consumer Gate v1.2
+Unified System Consumer Summary / Delivery v1.2
 
 ### Why this next layer exists
-The top umbrella consumer posture is now covered by a stage-lock audit. The next honest step is a read-only consumer gate that composes unified posture + unified stage lock into a stable consumer stance without reopening lower-band semantics.
+The unified top posture and its stage-lock audit now both exist. The next honest move is a pure packaging/delivery layer above those two surfaces with no new predicates and no reopening of lower-band semantics.
+
+### Current frozen and verified top surfaces
+- current frozen posture surface: `get_unified_system_consumer_posture_summary()`
+- current verified top audit surface: `get_unified_system_consumer_posture_stage_lock_audit()`
+- audit relationship: `get_unified_system_consumer_posture_stage_lock_audit()` freezes/audits `get_unified_system_consumer_posture_summary()`
 
 ---
 
@@ -103,9 +108,15 @@ The top umbrella consumer posture is now covered by a stage-lock audit. The next
 - Unified System Consumer Posture Summary v1.0 was added as a pure wrapper above:
   - `get_system_evidence_consumer_summary()`
   - `get_system_lock_gate_posture()`
-- Unified System Consumer Consistency / Stage Lock v1.1 is present as a read-only audit over:
-  - `get_unified_system_consumer_posture_summary()`
-  - canonical posture state contract + read-only guardrail consistency checks
+- `get_unified_system_consumer_posture_stage_lock_audit()` is present in `src/qd_perception/neutral_family_memory_v1.py`
+- `get_unified_system_consumer_posture_stage_lock_audit()` is the current verified top audit surface, freezing/auditing `get_unified_system_consumer_posture_summary()`
+- Minimal demo invocation returned:
+  - `audit_available = true`
+  - `audit_mode = UNIFIED_SYSTEM_CONSUMER_STAGE_LOCK`
+  - `lock_state = UNIFIED_SYSTEM_CONSUMER_STAGE_LOCKED`
+  - `reason = ALL_CONSISTENCY_CHECKS_PASSED`
+- Focused unified stage-lock tests now exist in:
+  - `tests/test_unified_system_consumer_posture_stage_lock.py`
 
 ### What is inferred but not yet verified
 - Whether qd_perception_spine should ultimately live inside an existing GitHub repo or become its own Git repo
@@ -119,34 +130,25 @@ The top umbrella consumer posture is now covered by a stage-lock audit. The next
 ---
 
 ## Today’s Work Log
-**Date:** 2026-04-04
+### Session date: 2026-04-04
+#### What we built
+- verified/finished Unified System Consumer Consistency / Stage Lock v1.1
+- important truth note: `get_unified_system_consumer_posture_stage_lock_audit()` was already present in source before this session; work performed this session was focused drift/guardrail test coverage plus validation, not invention of a brand-new decision layer
 
-### What we built
-- Unified System Consumer Consistency / Stage Lock v1.1 was validated and finalized as the active frontier
-- Focused stage-lock drift tests were added for canonical-state checks, fail-closed shape checks, guardrail checks, missing/unusable surface handling, and no hidden lower-band dependency checks
-
-### Files changed
+#### Files changed
 - `tests/test_unified_system_consumer_posture_stage_lock.py`
+- `BUILD_LEDGER.md`
 - `runs/unified_system_consumer_stage_lock_v1_1_transcript.txt`
 - `runs/unified_system_consumer_stage_lock_v1_1_delivery.txt`
-- `BUILD_LEDGER.md`
 
-### Tests run
-- Focused tests:
-  - `tests/test_unified_system_consumer_posture_stage_lock.py`
-  - `tests/test_unified_system_consumer_posture_summary.py`
-- Full pytest suite
+#### Tests run
+- initial focused run failed due to missing `PYTHONPATH=src`
+- corrected focused run: `13 passed, 1 warning`
+- corrected full suite: `300 passed, 1 warning`
 
-### Result counts
-- Focused tests: 13 passed, 1 warning
-- Full suite: 300 passed, 1 warning
-- Warnings:
-  - pytest cache permission warning
-  - temp symlink cleanup PermissionError warning (non-blocking)
-
-### Run artifacts / notes
-- Delivery/transcript artifacts were written under `runs/`
-- qd_perception_spine is currently not a Git repo in this folder
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
 
 ---
 
@@ -164,18 +166,19 @@ The top umbrella consumer posture is now covered by a stage-lock audit. The next
 
 ## Next Step
 ### Immediate next step
-Unified System Consumer Gate v1.2
+Unified System Consumer Summary / Delivery v1.2
 
 ### Why this is the next honest step
-The unified posture now has freeze/audit coverage. A minimal consumer gate is the next composition layer to expose a stable rely/limited/hold style posture for downstream consumers based only on unified summary and unified stage-lock results.
+The unified top posture and its stage-lock audit now both exist. The next honest move is a pure packaging/delivery layer above those two surfaces.
 
 ### What it must use
 - `get_unified_system_consumer_posture_summary()`
 - `get_unified_system_consumer_posture_stage_lock_audit()`
 
 ### What it must NOT do
-- reopen lower-band semantics
 - invent new truth predicates
+- bypass the unified top surfaces
+- reopen lower evidence or observability semantics
 - call lower-band evidence/observability APIs as hidden dependencies for posture resolution
 - mutate lineage, create events, or rewrite history
 
@@ -183,12 +186,16 @@ The unified posture now has freeze/audit coverage. A minimal consumer gate is th
 
 ## Git Checkpoint
 ### Commit status
-- Repo initialized: NO
-- Changes committed: NO
+- Repo initialized: YES
+- Changes committed: YES
 - Changes pushed: NO
 
+### First checkpoint details
+- commit hash: `7e6a418beba5932067b062bb390bd0d883c3ba27`
+- branch name: `master`
+
 ### Commit to make next
-**Suggested commit message:** Add unified consumer stage-lock v1.1 focused tests and ledger checkpoint
+**Suggested commit message:** Update build ledger and verify unified system consumer stage lock v1.1
 
 ### Files that should be committed
 - `src/`
@@ -203,12 +210,39 @@ The unified posture now has freeze/audit coverage. A minimal consumer gate is th
 - machine-specific junk
 - `.pytest_cache/`
 
+### Current likely untracked files (expected)
+- `.junie/`
+- `cross_band_stage_lock_v1.4_summary.txt`
+- `system_stage_lock_v1.0_report_for_q.txt`
+
 ---
 
 ## Restart Prompt
-Use this to start the next thread:
+Resume qd_perception_spine from BUILD_LEDGER.md.
 
-"Resume qd_perception_spine from the Build Ledger. Read Project Identity, Current Build State, Locked Contracts, Today’s Work Log, and Next Step first. Do not reopen locked lower semantics unless the ledger explicitly says to do so."
+Read these sections first:
+1. Current Build State
+2. Locked Contracts
+3. Latest Verified Facts
+4. Today’s Work Log
+5. Next Step
+
+Current verified suite count:
+- Full suite: 300 passed, 1 warning
+
+Current frozen top surface:
+- get_unified_system_consumer_posture_summary()
+
+Current verified top audit surface:
+- get_unified_system_consumer_posture_stage_lock_audit()
+
+Immediate next target:
+- Unified System Consumer Summary / Delivery v1.2
+
+Do not reopen locked lower semantics.
+Do not invent new predicates.
+Do not add hidden lower-band calls.
+Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ---
 
@@ -221,7 +255,8 @@ Use this to start the next thread:
 ### Verified today
 - unified posture stage-lock audit surface is present in `neutral_family_memory_v1.py`
 - final full suite reported green at 300 passed, 1 warning
-- current qd_perception_spine folder is not initialized as a Git repo
+- top unified posture stage lock present and validated
+- repo initialized and first local checkpoint commit created
 
 ### Open questions
 - Should qd_perception_spine become its own Git repo?
@@ -229,9 +264,9 @@ Use this to start the next thread:
 - How should truth_engine_v1 relate to this repo, if at all?
 
 ### First action next session
-- Initialize Git or identify intended parent repo
-- decide whether `runs/` stays unversioned after Git init
-- build Unified System Consumer Gate v1.2
+- read BUILD_LEDGER.md first
+- build Unified System Consumer Summary / Delivery v1.2
+- update ledger again before stopping
 
 ### Pressure items / risks
 - continuity drift if ledger is not kept current
@@ -247,8 +282,8 @@ Use this to start the next thread:
 - added a top umbrella consumer posture without contaminating lower truth surfaces
 
 ### Technical Failures
-- qd_perception_spine is not currently a Git repo
-- continuity has depended too much on chat/thread memory instead of file-based state
+- continuity previously depended too much on chat/thread memory before ledger adoption
+- first focused test run failed because `PYTHONPATH=src` was not set
 
 ### Conceptual Failures
 - inconsistent use of a persistent ledger/process anchor across sessions
