@@ -30,16 +30,16 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-Observability Evidence Review Summary v1.0
+System-Wide Evidence Review v1.1 revalidated (v1.1a)
 
 ### Last completed layer
-Observability Evidence Review Summary v1.0 implemented and verified
+System-Wide Evidence Review Revalidation v1.1a completed (no contract change required)
 
 ### Current recommended next layer
-System-Wide Evidence Review Revalidation v1.1a
+No new wrapper layer required (hold current upper stack)
 
 ### Why this next layer exists
-The missing observability-side evidence review contract now exists. The next honest step is to revalidate system-level evidence review behavior with this real observability surface active, without reopening lower-band semantics.
+The system evidence contract is now revalidated with a real observability evidence-review surface. The next honest step is a stability/consumer adoption checkpoint without adding new wrapper layers.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -130,6 +130,9 @@ The missing observability-side evidence review contract now exists. The next hon
   - `tests/test_unified_system_consumer_summary.py`
 - Focused observability evidence review tests now exist in:
   - `tests/test_observability_evidence_review.py`
+- System-wide evidence review v1.1 behavior was revalidated with the real `get_observability_evidence_review_summary()` surface active:
+  - READY/PARTIAL/UNAVAILABLE contract remained unchanged
+  - no implementation/test correction was required
 
 ### What is inferred but not yet verified
 - Whether qd_perception_spine should ultimately live inside an existing GitHub repo or become its own Git repo
@@ -210,6 +213,25 @@ The missing observability-side evidence review contract now exists. The next hon
 - pytest cache permission warning
 - temp symlink cleanup PermissionError warning (non-blocking)
 
+### Session date: 2026-04-04 (System-Wide Evidence Review Revalidation v1.1a)
+#### What we built
+- performed inspection/revalidation of `get_system_evidence_review_summary()` against the now-real observability evidence-review surface
+- verified adjacent stage-lock/gate/consumer-summary surfaces remain contract-consistent
+- no code or test correction was required for v1.1a
+
+#### Files changed
+- `BUILD_LEDGER.md`
+- `runs/system_wide_evidence_review_revalidation_v1_1a_transcript.txt`
+- `runs/system_wide_evidence_review_revalidation_v1_1a_delivery.txt`
+
+#### Tests run
+- focused revalidation tests with `PYTHONPATH=src`: `28 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `310 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
 ---
 
 ## Current APIs / Surfaces Added
@@ -228,15 +250,19 @@ The missing observability-side evidence review contract now exists. The next hon
 
 ## Next Step
 ### Immediate next step
-System-Wide Evidence Review Revalidation v1.1a
+Stability hold and downstream consumer adoption checkpoint (no new wrapper layer)
 
 ### Why this is the next honest step
-System evidence review now has a real observability evidence-review source. Revalidating v1.1 behavior under this real source is the next honest step before adding any new upward layer.
+All current upper surfaces are green and revalidated. The honest next move is to keep semantics stable and pressure-test external consumption patterns before introducing any additional composition layer.
 
 ### What it must use
 - `get_system_evidence_review_summary()`
-- `get_observability_evidence_review_summary()`
-- existing cross-band/system-lock surfaces only through established system evidence review contracts
+- `get_system_evidence_review_stage_lock_audit()`
+- `get_system_evidence_review_consumer_gate()`
+- `get_system_evidence_consumer_summary()`
+- `get_unified_system_consumer_posture_summary()`
+- `get_unified_system_consumer_posture_stage_lock_audit()`
+- `get_unified_system_consumer_summary()`
 
 ### What it must NOT do
 - invent new truth predicates
@@ -305,7 +331,7 @@ Current observability evidence-review surface:
 - get_observability_evidence_review_summary()
 
 Immediate next target:
-- System-Wide Evidence Review Revalidation v1.1a
+- Stability hold and downstream consumer adoption checkpoint (no new wrapper layer)
 
 Do not reopen locked lower semantics.
 Do not invent new predicates.
@@ -322,6 +348,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - Added focused unified consumer summary tests
 - Implemented Observability Evidence Review Summary v1.0
 - Added focused observability evidence review tests
+- Revalidated System-Wide Evidence Review v1.1 (v1.1a) with no contract correction required
 - Verified full suite on the updated frontier
 
 ### Verified today
@@ -329,6 +356,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - unified summary delivery surface is present in `neutral_family_memory_v1.py`
 - observability evidence-review surface is present in `neutral_family_memory_v1.py`
 - final full suite reported green at 310 passed, 1 warning
+- focused system-evidence revalidation suite reported green at 28 passed, 1 warning
 - top unified posture stage lock present and validated
 - repo initialized and first local checkpoint commit created
 
@@ -339,7 +367,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ### First action next session
 - read BUILD_LEDGER.md first
-- run System-Wide Evidence Review Revalidation v1.1a against the new observability evidence-review surface
+- hold upper semantics steady and pressure-test downstream consumers on existing surfaces
 - update ledger again before stopping
 
 ### Pressure items / risks
