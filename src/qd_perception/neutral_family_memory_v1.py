@@ -5691,6 +5691,416 @@ class NeutralFamilyMemoryV1:
             scope_label="EVENT_ORDER_WINDOW",
         )
 
+    def _build_observability_bounded_evidence_review(
+        self,
+        *,
+        bounded_summary,
+        comparator_summary,
+        review_mode: str,
+        scope_label: str,
+    ) -> dict:
+        def _as_int(v) -> int:
+            if isinstance(v, bool):
+                return int(v)
+            if isinstance(v, (int, float)):
+                return int(v)
+            return 0
+
+        audit_state_counts = (
+            bounded_summary.get("audit_state_counts", {})
+            if isinstance(bounded_summary.get("audit_state_counts"), dict)
+            else {
+                "PRESSURE_CAPTURE_AUDIT_VALID": 0,
+                "PRESSURE_CAPTURE_AUDIT_INVALID": 0,
+                "PRESSURE_CAPTURE_AUDIT_UNAVAILABLE": 0,
+            }
+        )
+        capture_reason_counts = (
+            bounded_summary.get("capture_reason_counts", {})
+            if isinstance(bounded_summary.get("capture_reason_counts"), dict)
+            else {
+                "PRESSURE_CAPTURE_FULL": 0,
+                "PRESSURE_CAPTURE_PARTIAL": 0,
+                "PRESSURE_CAPTURE_FAILED": 0,
+                "UNRECOGNIZED_CAPTURE_REASON": 0,
+            }
+        )
+        recoverability_counts = (
+            bounded_summary.get("recoverability_counts", {})
+            if isinstance(bounded_summary.get("recoverability_counts"), dict)
+            else {
+                "FULLY_RECOVERABLE": 0,
+                "PARTIALLY_RECOVERABLE": 0,
+                "UNRECOVERABLE": 0,
+            }
+        )
+        event_type_counts = (
+            bounded_summary.get("event_type_counts", {})
+            if isinstance(bounded_summary.get("event_type_counts"), dict)
+            else {}
+        )
+
+        summary_available = bool(bounded_summary.get("summary_available", False))
+        auditable_event_count = _as_int(bounded_summary.get("auditable_event_count", 0))
+        snapshot_present_count = _as_int(bounded_summary.get("pressure_snapshot_present_count", 0))
+        snapshot_missing_count = _as_int(bounded_summary.get("pressure_snapshot_missing_count", 0))
+        valid_count = _as_int(audit_state_counts.get("PRESSURE_CAPTURE_AUDIT_VALID", 0))
+        invalid_count = _as_int(audit_state_counts.get("PRESSURE_CAPTURE_AUDIT_INVALID", 0))
+        unavailable_count = _as_int(audit_state_counts.get("PRESSURE_CAPTURE_AUDIT_UNAVAILABLE", 0))
+
+        ready = (
+            summary_available
+            and auditable_event_count > 0
+            and valid_count == auditable_event_count
+            and invalid_count == 0
+            and unavailable_count == 0
+        )
+        meaningful_surface_exists = summary_available and auditable_event_count > 0
+
+        if ready:
+            review_state = "OBSERVABILITY_EVIDENCE_REVIEW_READY"
+            review_reason = "BOUNDED_FULLY_AUDITABLE_OBSERVABILITY_EVIDENCE"
+        elif meaningful_surface_exists:
+            review_state = "OBSERVABILITY_EVIDENCE_REVIEW_PARTIAL"
+            review_reason = "BOUNDED_LIMITED_OR_MIXED_OBSERVABILITY_EVIDENCE"
+        else:
+            review_state = "OBSERVABILITY_EVIDENCE_REVIEW_UNAVAILABLE"
+            review_reason = "BOUNDED_OBSERVABILITY_EVIDENCE_SURFACE_INSUFFICIENT_OR_MISSING"
+
+        warnings = []
+        warnings.extend(bounded_summary.get("warnings", []))
+        if isinstance(comparator_summary, dict):
+            warnings.extend(comparator_summary.get("warnings", []))
+            mismatch_flags = comparator_summary.get("mismatch_flags", [])
+            if isinstance(mismatch_flags, list):
+                mismatch_set = set(mismatch_flags)
+                mismatch_set.discard("NO_MISMATCH_DETECTED")
+                if mismatch_set:
+                    warnings.append("COMPARATOR_CONTEXT_MISMATCH_FLAGS_PRESENT")
+        else:
+            warnings.append("OBSERVABILITY_WINDOW_COMPARATOR_SURFACE_MISSING")
+
+        comparator_reason = (
+            comparator_summary.get("reason")
+            if isinstance(comparator_summary, dict)
+            else "COMPARATOR_CONTEXT_UNAVAILABLE"
+        )
+
+        explanation_lines = [
+            f"Review state: {review_state}",
+            f"Review reason: {review_reason}",
+            f"Bounded scope: {scope_label}",
+            f"Auditable events: {auditable_event_count}",
+            f"Audit valid/invalid/unavailable: {valid_count}/{invalid_count}/{unavailable_count}",
+            "Bounded observability review posture is scope-limited and not equivalent to full-range observability review.",
+            f"Comparator context reason (non-predicate): {comparator_reason}",
+        ]
+        if auditable_event_count == 0:
+            explanation_lines.append("Bounded observability evidence surface is thin (0 auditable events).")
+
+        return {
+            "review_available": True,
+            "review_mode": review_mode,
+            "review_state": review_state,
+            "review_reason": review_reason,
+            "window_spec": (
+                bounded_summary.get("window_spec", {})
+                if isinstance(bounded_summary.get("window_spec"), dict)
+                else {}
+            ),
+            "evidence_scope": {
+                "bounded_scope": scope_label,
+                "bounded_summary_mode": bounded_summary.get("summary_mode"),
+                "bounded_summary_reason": bounded_summary.get("reason"),
+                "total_transition_events": _as_int(bounded_summary.get("total_transition_events", 0)),
+                "window_event_count": _as_int(bounded_summary.get("window_event_count", 0)),
+                "total_auditable_events": auditable_event_count,
+                "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                "coverage_notes": list(bounded_summary.get("explanation_lines", [])),
+            },
+            "evidence_counts": {
+                "total_transition_events": _as_int(bounded_summary.get("total_transition_events", 0)),
+                "window_event_count": _as_int(bounded_summary.get("window_event_count", 0)),
+                "total_auditable_events": auditable_event_count,
+                "pressure_snapshot_present_count": snapshot_present_count,
+                "pressure_snapshot_missing_count": snapshot_missing_count,
+                "audit_state_counts": audit_state_counts,
+                "capture_reason_counts": capture_reason_counts,
+                "recoverability_counts": recoverability_counts,
+                "event_type_counts": event_type_counts,
+            },
+            "supporting_surfaces": {
+                "bounded_observability_quality_summary": bounded_summary,
+                "observability_window_comparator_context": comparator_summary,
+            },
+            "warnings": sorted(set(warnings)),
+            "explanation_lines": explanation_lines,
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    def get_observability_evidence_review_summary_window(
+        self,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Observability Evidence Review Summary Windowed v1.1.
+        Read-only bounded review mapping over index-window observability quality summary.
+        """
+        summary_api_name = "get_pressure_capture_quality_summary_window"
+        comparator_api_name = "get_pressure_capture_quality_window_comparator"
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            bounded_summary,
+            comparator_summary,
+            warnings: list[str],
+        ) -> dict:
+            return {
+                "review_available": False,
+                "review_mode": "OBSERVABILITY_EVIDENCE_REVIEW_WINDOW",
+                "review_state": "OBSERVABILITY_EVIDENCE_REVIEW_UNAVAILABLE",
+                "review_reason": reason,
+                "window_spec": {},
+                "evidence_scope": {
+                    "bounded_scope": "INDEX_WINDOW",
+                    "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                    "coverage_notes": [explanation],
+                },
+                "evidence_counts": {
+                    "total_transition_events": 0,
+                    "window_event_count": 0,
+                    "total_auditable_events": 0,
+                    "pressure_snapshot_present_count": 0,
+                    "pressure_snapshot_missing_count": 0,
+                    "audit_state_counts": {
+                        "PRESSURE_CAPTURE_AUDIT_VALID": 0,
+                        "PRESSURE_CAPTURE_AUDIT_INVALID": 0,
+                        "PRESSURE_CAPTURE_AUDIT_UNAVAILABLE": 0,
+                    },
+                    "capture_reason_counts": {
+                        "PRESSURE_CAPTURE_FULL": 0,
+                        "PRESSURE_CAPTURE_PARTIAL": 0,
+                        "PRESSURE_CAPTURE_FAILED": 0,
+                        "UNRECOGNIZED_CAPTURE_REASON": 0,
+                    },
+                    "recoverability_counts": {
+                        "FULLY_RECOVERABLE": 0,
+                        "PARTIALLY_RECOVERABLE": 0,
+                        "UNRECOVERABLE": 0,
+                    },
+                    "event_type_counts": {},
+                },
+                "supporting_surfaces": {
+                    "bounded_observability_quality_summary": bounded_summary,
+                    "observability_window_comparator_context": comparator_summary,
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        if not callable(getattr(self, summary_api_name, None)):
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required bounded observability source surface missing: "
+                    "get_pressure_capture_quality_summary_window."
+                ),
+                bounded_summary=None,
+                comparator_summary=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+
+        comparator_summary = None
+        if callable(getattr(self, comparator_api_name, None)):
+            try:
+                comparator_summary = self.get_pressure_capture_quality_window_comparator(
+                    start_index=start_index,
+                    end_index=end_index,
+                    index_max_events=max_events,
+                )
+            except Exception:
+                comparator_summary = None
+
+        try:
+            bounded_summary = self.get_pressure_capture_quality_summary_window(
+                start_index=start_index,
+                end_index=end_index,
+                max_events=max_events,
+            )
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"get_pressure_capture_quality_summary_window() raised {type(exc).__name__}.",
+                bounded_summary=None,
+                comparator_summary=comparator_summary,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "OBSERVABILITY_WINDOW_SUMMARY_CALL_FAILED"],
+            )
+
+        shape_ok = (
+            isinstance(bounded_summary, dict)
+            and bounded_summary.get("summary_mode") == "LEDGER_READ_ONLY_WINDOWED"
+            and isinstance(bounded_summary.get("window_spec"), dict)
+            and isinstance(bounded_summary.get("audit_state_counts"), dict)
+            and isinstance(bounded_summary.get("capture_reason_counts"), dict)
+            and isinstance(bounded_summary.get("recoverability_counts"), dict)
+        )
+        if not shape_ok:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation="Bounded observability window summary shape is invalid for evidence-review mapping.",
+                bounded_summary=bounded_summary,
+                comparator_summary=comparator_summary,
+                warnings=["REQUIRED_SURFACE_SHAPE_INVALID"],
+            )
+
+        return self._build_observability_bounded_evidence_review(
+            bounded_summary=bounded_summary,
+            comparator_summary=comparator_summary,
+            review_mode="OBSERVABILITY_EVIDENCE_REVIEW_WINDOW",
+            scope_label="INDEX_WINDOW",
+        )
+
+    def get_observability_evidence_review_summary_event_order_window(
+        self,
+        start_event_order: Optional[float] = None,
+        end_event_order: Optional[float] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Observability Evidence Review Summary Event-Order Windowed v1.1.
+        Read-only bounded review mapping over event-order-window observability quality summary.
+        """
+        summary_api_name = "get_pressure_capture_quality_summary_event_order_window"
+        comparator_api_name = "get_pressure_capture_quality_window_comparator"
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            bounded_summary,
+            comparator_summary,
+            warnings: list[str],
+        ) -> dict:
+            return {
+                "review_available": False,
+                "review_mode": "OBSERVABILITY_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+                "review_state": "OBSERVABILITY_EVIDENCE_REVIEW_UNAVAILABLE",
+                "review_reason": reason,
+                "window_spec": {},
+                "evidence_scope": {
+                    "bounded_scope": "EVENT_ORDER_WINDOW",
+                    "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                    "coverage_notes": [explanation],
+                },
+                "evidence_counts": {
+                    "total_transition_events": 0,
+                    "window_event_count": 0,
+                    "total_auditable_events": 0,
+                    "pressure_snapshot_present_count": 0,
+                    "pressure_snapshot_missing_count": 0,
+                    "audit_state_counts": {
+                        "PRESSURE_CAPTURE_AUDIT_VALID": 0,
+                        "PRESSURE_CAPTURE_AUDIT_INVALID": 0,
+                        "PRESSURE_CAPTURE_AUDIT_UNAVAILABLE": 0,
+                    },
+                    "capture_reason_counts": {
+                        "PRESSURE_CAPTURE_FULL": 0,
+                        "PRESSURE_CAPTURE_PARTIAL": 0,
+                        "PRESSURE_CAPTURE_FAILED": 0,
+                        "UNRECOGNIZED_CAPTURE_REASON": 0,
+                    },
+                    "recoverability_counts": {
+                        "FULLY_RECOVERABLE": 0,
+                        "PARTIALLY_RECOVERABLE": 0,
+                        "UNRECOVERABLE": 0,
+                    },
+                    "event_type_counts": {},
+                },
+                "supporting_surfaces": {
+                    "bounded_observability_quality_summary": bounded_summary,
+                    "observability_window_comparator_context": comparator_summary,
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        if not callable(getattr(self, summary_api_name, None)):
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required bounded observability source surface missing: "
+                    "get_pressure_capture_quality_summary_event_order_window."
+                ),
+                bounded_summary=None,
+                comparator_summary=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+
+        comparator_summary = None
+        if callable(getattr(self, comparator_api_name, None)):
+            try:
+                comparator_summary = self.get_pressure_capture_quality_window_comparator(
+                    start_event_order=start_event_order,
+                    end_event_order=end_event_order,
+                    event_order_max_events=max_events,
+                )
+            except Exception:
+                comparator_summary = None
+
+        try:
+            bounded_summary = self.get_pressure_capture_quality_summary_event_order_window(
+                start_event_order=start_event_order,
+                end_event_order=end_event_order,
+                max_events=max_events,
+            )
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=(
+                    "get_pressure_capture_quality_summary_event_order_window() "
+                    f"raised {type(exc).__name__}."
+                ),
+                bounded_summary=None,
+                comparator_summary=comparator_summary,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "OBSERVABILITY_EVENT_ORDER_WINDOW_SUMMARY_CALL_FAILED"],
+            )
+
+        shape_ok = (
+            isinstance(bounded_summary, dict)
+            and bounded_summary.get("summary_mode") == "LEDGER_READ_ONLY_EVENT_ORDER_WINDOWED"
+            and isinstance(bounded_summary.get("window_spec"), dict)
+            and isinstance(bounded_summary.get("audit_state_counts"), dict)
+            and isinstance(bounded_summary.get("capture_reason_counts"), dict)
+            and isinstance(bounded_summary.get("recoverability_counts"), dict)
+        )
+        if not shape_ok:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation="Bounded observability event-order summary shape is invalid for evidence-review mapping.",
+                bounded_summary=bounded_summary,
+                comparator_summary=comparator_summary,
+                warnings=["REQUIRED_SURFACE_SHAPE_INVALID"],
+            )
+
+        return self._build_observability_bounded_evidence_review(
+            bounded_summary=bounded_summary,
+            comparator_summary=comparator_summary,
+            review_mode="OBSERVABILITY_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            scope_label="EVENT_ORDER_WINDOW",
+        )
+
     def get_observability_evidence_review_summary(self) -> dict:
         """
         Observability Evidence Review Summary v1.0.

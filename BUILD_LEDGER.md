@@ -30,16 +30,16 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-Cross-Band Evidence Review Summary Windowed v1.1
-
-### Last completed layer
-Cross-Band Evidence Review Summary Windowed v1.1 present, validated, and committed
-
-### Current recommended next layer
 Observability Evidence Review Summary Windowed v1.1
 
+### Last completed layer
+Observability Evidence Review Summary Windowed v1.1 implemented and verified
+
+### Current recommended next layer
+Bounded System Evidence Review Sampler v1.0
+
 ### Why this next layer exists
-Cross-band bounded evidence-review mapping now exists for index and event-order windows. The next honest step is to add the matching observability bounded evidence-review surface before any bounded system-level sampler, so scope asymmetry is explicit and not hidden.
+Both bounded evidence-review sides now exist (cross-band and observability, each for index and event-order windows). The next honest substantive step is bounded system-level sampling over those bounded review surfaces without implying full-range equivalence.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -51,6 +51,9 @@ Cross-band bounded evidence-review mapping now exists for index and event-order 
 - current cross-band bounded evidence-review surfaces:
   - `get_cross_band_evidence_review_summary_window(...)`
   - `get_cross_band_evidence_review_summary_event_order_window(...)`
+- current observability bounded evidence-review surfaces:
+  - `get_observability_evidence_review_summary_window(...)`
+  - `get_observability_evidence_review_summary_event_order_window(...)`
 
 ---
 
@@ -150,8 +153,14 @@ Cross-band bounded evidence-review mapping now exists for index and event-order 
   - `get_cross_band_self_check_window_comparator(...)` as supporting context only
 - Focused bounded cross-band evidence-review tests now exist in:
   - `tests/test_cross_band_evidence_review_windowed.py`
+- `get_observability_evidence_review_summary_window(...)` and `get_observability_evidence_review_summary_event_order_window(...)` are present in `src/qd_perception/neutral_family_memory_v1.py` as bounded read-only review mappings over:
+  - `get_pressure_capture_quality_summary_window(...)`
+  - `get_pressure_capture_quality_summary_event_order_window(...)`
+  - `get_pressure_capture_quality_window_comparator(...)` as supporting context only
+- Focused bounded observability evidence-review tests now exist in:
+  - `tests/test_observability_evidence_review_windowed.py`
 - Latest verified full-suite baseline:
-  - `327 passed, 1 warning`
+  - `338 passed, 1 warning`
 
 ### What is inferred but not yet verified
 - Whether qd_perception_spine should ultimately live inside an existing GitHub repo or become its own Git repo
@@ -165,6 +174,33 @@ Cross-band bounded evidence-review mapping now exists for index and event-order 
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-05 (Observability Evidence Review Summary Windowed v1.1)
+#### What we built
+- implemented bounded observability evidence-review mapping surfaces:
+  - `get_observability_evidence_review_summary_window(...)`
+  - `get_observability_evidence_review_summary_event_order_window(...)`
+- composition constrained to allowed bounded observability surfaces:
+  - `get_pressure_capture_quality_summary_window(...)`
+  - `get_pressure_capture_quality_summary_event_order_window(...)`
+  - `get_pressure_capture_quality_window_comparator(...)` as supporting context only
+- explicit bounded scope non-equivalence retained in output contract; comparator context kept non-predicate
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_observability_evidence_review_windowed.py`
+- `BUILD_LEDGER.md`
+- `runs/observability_evidence_review_summary_windowed_v1_1_transcript.txt`
+- `runs/observability_evidence_review_summary_windowed_v1_1_delivery.txt`
+
+#### Tests run
+- focused bounded observability review tests with `PYTHONPATH=src`: `11 passed, 1 warning`
+- adjacent observability/window tests with `PYTHONPATH=src`: `26 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `338 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
 ### Session date: 2026-04-04 (End-of-day closeout)
 #### What we finalized
 - built/validated Observability Evidence Review Consistency / Stage Lock v1.1
@@ -334,21 +370,24 @@ Cross-band bounded evidence-review mapping now exists for index and event-order 
 - `get_observability_evidence_review_stage_lock_audit()`
 - `get_cross_band_evidence_review_summary_window(...)`
 - `get_cross_band_evidence_review_summary_event_order_window(...)`
+- `get_observability_evidence_review_summary_window(...)`
+- `get_observability_evidence_review_summary_event_order_window(...)`
 
 ---
 
 ## Next Step
 ### Immediate next step
-Observability Evidence Review Summary Windowed v1.1
+Bounded System Evidence Review Sampler v1.0
 
 ### Why this is the next honest step
-Cross-band bounded evidence-review surfaces are now available for both index and event-order windows. The missing substantive capability is observability-side bounded evidence-review mapping so bounded system-level composition can avoid scope asymmetry.
+Bounded cross-band and bounded observability evidence-review mappings now both exist, so bounded system-level composition can be added without mixing bounded inputs with missing bounded anchors.
 
 ### What it must use
-- `get_pressure_capture_quality_summary_window(...)`
-- `get_pressure_capture_quality_summary_event_order_window(...)`
-- `get_pressure_capture_quality_window_comparator(...)` only as supporting context/integrity
-- semantic discipline anchor only: `get_observability_evidence_review_summary()`
+- `get_cross_band_evidence_review_summary_window(...)`
+- `get_cross_band_evidence_review_summary_event_order_window(...)`
+- `get_observability_evidence_review_summary_window(...)`
+- `get_observability_evidence_review_summary_event_order_window(...)`
+- bounded comparator context only through supporting surfaces (no hidden predicate promotion)
 
 ### What it must NOT do
 - invent new truth predicates
@@ -366,12 +405,12 @@ Cross-band bounded evidence-review surfaces are now available for both index and
 ## Git Checkpoint
 ### Commit status
 - Repo initialized: YES
-- Changes committed: YES
+- Changes committed: YES (latest committed baseline at `89c77e3ee7d03e030b2e788ef33ab3408f18a319`)
 - Changes pushed: YES (to `origin/main`)
-- Repo clean: YES
+- Repo clean: NO (current session changes pending commit)
 - Branch: `main`
 - Upstream: `origin/main`
-- Synced with upstream: YES (HEAD at `origin/main`)
+- Synced with upstream: YES at last commit; working tree currently dirty with local uncommitted changes
 
 ### Latest relevant commits (today)
 - `89c77e3ee7d03e030b2e788ef33ab3408f18a319` - Add cross-band evidence review windowed v1.1
@@ -413,7 +452,7 @@ Read these sections first:
 5. Next Step
 
 Current verified suite count:
-- Full suite: 327 passed, 1 warning
+- Full suite: 338 passed, 1 warning
 
 Current frozen top surface:
 - get_unified_system_consumer_posture_summary()
@@ -431,7 +470,7 @@ Current observability evidence-review audit surface:
 - get_observability_evidence_review_stage_lock_audit()
 
 Immediate next target:
-- Observability Evidence Review Summary Windowed v1.1
+- Bounded System Evidence Review Sampler v1.0
 
 Do not reopen locked lower semantics.
 Do not invent new predicates.
@@ -442,6 +481,9 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ## End-of-Day Snapshot
 ### Built today
+- Implemented Observability Evidence Review Summary Windowed v1.1 (index + event-order)
+- Added focused bounded observability evidence-review tests
+- Verified full suite on updated bounded observability frontier
 - Validated and finalized Unified System Consumer Consistency / Stage Lock v1.1
 - Added focused stage-lock drift and guardrail tests
 - Implemented Unified System Consumer Summary / Delivery v1.2
@@ -460,7 +502,8 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - observability evidence-review surface is present in `neutral_family_memory_v1.py`
 - observability evidence-review stage-lock surface is present in `neutral_family_memory_v1.py`
 - bounded cross-band evidence-review windowed surfaces are present in `neutral_family_memory_v1.py`
-- final full suite reported green at 327 passed, 1 warning
+- bounded observability evidence-review windowed surfaces are present in `neutral_family_memory_v1.py`
+- final full suite reported green at 338 passed, 1 warning
 - focused system-evidence revalidation suite reported green at 28 passed, 1 warning
 - top unified posture stage lock present and validated
 - repo initialized and first local checkpoint commit created
@@ -472,14 +515,14 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ### First action next session
 - read BUILD_LEDGER.md first
-- inspect/build Observability Evidence Review Summary Windowed v1.1
+- inspect/build Bounded System Evidence Review Sampler v1.0
 - update ledger again before stopping
 
 ### Pressure items / risks
 - continuity drift if ledger is not kept current
 - repo drift if Git is not initialized soon
 - artifact clutter if `runs/` is committed indiscriminately
-- bounded system sampler remains premature until bounded observability evidence-review mapping exists
+- avoid accidental bounded-to-full-range equivalence claims in any new bounded system sampler output
 
 ---
 
