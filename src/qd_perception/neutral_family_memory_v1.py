@@ -6101,6 +6101,420 @@ class NeutralFamilyMemoryV1:
             scope_label="EVENT_ORDER_WINDOW",
         )
 
+    def _build_system_bounded_evidence_review(
+        self,
+        *,
+        cross_review,
+        observability_review,
+        review_mode: str,
+        scope_label: str,
+    ) -> dict:
+        def _as_int(v) -> int:
+            if isinstance(v, bool):
+                return int(v)
+            if isinstance(v, (int, float)):
+                return int(v)
+            return 0
+
+        cross_scope = (
+            cross_review.get("evidence_scope", {})
+            if isinstance(cross_review.get("evidence_scope"), dict)
+            else {}
+        )
+        obs_scope = (
+            observability_review.get("evidence_scope", {})
+            if isinstance(observability_review.get("evidence_scope"), dict)
+            else {}
+        )
+        cross_counts = (
+            cross_review.get("evidence_counts", {})
+            if isinstance(cross_review.get("evidence_counts"), dict)
+            else {}
+        )
+        obs_counts = (
+            observability_review.get("evidence_counts", {})
+            if isinstance(observability_review.get("evidence_counts"), dict)
+            else {}
+        )
+
+        cross_auditable = _as_int(
+            cross_scope.get(
+                "total_auditable_events",
+                cross_counts.get("total_auditable_events", 0),
+            )
+        )
+        obs_auditable = _as_int(
+            obs_scope.get(
+                "total_auditable_events",
+                obs_counts.get("total_auditable_events", 0),
+            )
+        )
+        total_auditable = cross_auditable + obs_auditable
+
+        cross_available = bool(cross_review.get("review_available", False))
+        obs_available = bool(observability_review.get("review_available", False))
+        cross_state = str(
+            cross_review.get("review_state", "CROSS_BAND_EVIDENCE_REVIEW_UNAVAILABLE")
+        )
+        obs_state = str(
+            observability_review.get(
+                "review_state", "OBSERVABILITY_EVIDENCE_REVIEW_UNAVAILABLE"
+            )
+        )
+        cross_ready = cross_available and cross_state.endswith("_READY")
+        obs_ready = obs_available and obs_state.endswith("_READY")
+
+        ready = (
+            cross_ready
+            and obs_ready
+            and cross_auditable > 0
+            and obs_auditable > 0
+        )
+        meaningful_bounded_signal = total_auditable > 0
+
+        if ready:
+            review_state = "SYSTEM_EVIDENCE_REVIEW_READY"
+            review_reason = "BOUNDED_COMPOSED_EVIDENCE_SURFACES_READY"
+        elif not meaningful_bounded_signal:
+            review_state = "SYSTEM_EVIDENCE_REVIEW_UNAVAILABLE"
+            review_reason = "NO_MEANINGFUL_BOUNDED_EVIDENCE_SURFACE"
+        else:
+            review_state = "SYSTEM_EVIDENCE_REVIEW_PARTIAL"
+            review_reason = "BOUNDED_LIMITED_OR_MIXED_EVIDENCE_SURFACE"
+
+        warnings = []
+        warnings.extend(cross_review.get("warnings", []))
+        warnings.extend(observability_review.get("warnings", []))
+
+        return {
+            "review_available": True,
+            "review_mode": review_mode,
+            "review_state": review_state,
+            "review_reason": review_reason,
+            "window_spec": cross_review.get("window_spec", {}),
+            "evidence_scope": {
+                "bounded_scope": scope_label,
+                "cross_band_review_state": cross_state,
+                "observability_review_state": obs_state,
+                "cross_band_summary_mode": cross_scope.get("bounded_summary_mode"),
+                "observability_summary_mode": obs_scope.get("bounded_summary_mode"),
+                "total_auditable_events": total_auditable,
+                "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                "coverage_notes": (
+                    list(cross_scope.get("coverage_notes", []))
+                    + list(obs_scope.get("coverage_notes", []))
+                ),
+            },
+            "evidence_counts": {
+                "cross_band_total_auditable_events": cross_auditable,
+                "observability_total_auditable_events": obs_auditable,
+                "total_auditable_events": total_auditable,
+                "cross_band_evidence_counts": cross_counts,
+                "observability_evidence_counts": obs_counts,
+            },
+            "supporting_surfaces": {
+                "cross_band_bounded_evidence_review": cross_review,
+                "observability_bounded_evidence_review": observability_review,
+            },
+            "warnings": sorted(set(warnings)),
+            "explanation_lines": [
+                f"Review state: {review_state}",
+                f"Review reason: {review_reason}",
+                f"Bounded scope: {scope_label}",
+                f"Cross-band bounded review state: {cross_state}",
+                f"Observability bounded review state: {obs_state}",
+                f"Total bounded auditable events: {total_auditable}",
+                "System bounded evidence posture is scope-limited and not equivalent to full-range system evidence review.",
+            ],
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    def get_system_evidence_review_sampler_window(
+        self,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Bounded System Evidence Review Sampler v1.0 (index window).
+        Read-only composition over bounded cross-band and bounded observability evidence-review surfaces.
+        """
+        cross_api_name = "get_cross_band_evidence_review_summary_window"
+        obs_api_name = "get_observability_evidence_review_summary_window"
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            cross_surface,
+            obs_surface,
+            warnings: list[str],
+        ) -> dict:
+            return {
+                "review_available": False,
+                "review_mode": "SYSTEM_EVIDENCE_REVIEW_WINDOW",
+                "review_state": "SYSTEM_EVIDENCE_REVIEW_UNAVAILABLE",
+                "review_reason": reason,
+                "window_spec": {},
+                "evidence_scope": {
+                    "bounded_scope": "INDEX_WINDOW",
+                    "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                    "coverage_notes": [explanation],
+                },
+                "evidence_counts": {
+                    "cross_band_total_auditable_events": 0,
+                    "observability_total_auditable_events": 0,
+                    "total_auditable_events": 0,
+                    "cross_band_evidence_counts": {},
+                    "observability_evidence_counts": {},
+                },
+                "supporting_surfaces": {
+                    "cross_band_bounded_evidence_review": cross_surface,
+                    "observability_bounded_evidence_review": obs_surface,
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        if not callable(getattr(self, cross_api_name, None)):
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required bounded system source surface missing: "
+                    "get_cross_band_evidence_review_summary_window."
+                ),
+                cross_surface=None,
+                obs_surface=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+        if not callable(getattr(self, obs_api_name, None)):
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required bounded system source surface missing: "
+                    "get_observability_evidence_review_summary_window."
+                ),
+                cross_surface=None,
+                obs_surface=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+
+        try:
+            cross_review = self.get_cross_band_evidence_review_summary_window(
+                start_index=start_index,
+                end_index=end_index,
+                max_events=max_events,
+            )
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=(
+                    "get_cross_band_evidence_review_summary_window() "
+                    f"raised {type(exc).__name__}."
+                ),
+                cross_surface=None,
+                obs_surface=None,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "CROSS_BAND_WINDOW_REVIEW_CALL_FAILED"],
+            )
+
+        try:
+            obs_review = self.get_observability_evidence_review_summary_window(
+                start_index=start_index,
+                end_index=end_index,
+                max_events=max_events,
+            )
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=(
+                    "get_observability_evidence_review_summary_window() "
+                    f"raised {type(exc).__name__}."
+                ),
+                cross_surface=cross_review,
+                obs_surface=None,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "OBSERVABILITY_WINDOW_REVIEW_CALL_FAILED"],
+            )
+
+        shape_ok = (
+            isinstance(cross_review, dict)
+            and cross_review.get("review_mode") == "CROSS_BAND_EVIDENCE_REVIEW_WINDOW"
+            and isinstance(cross_review.get("window_spec"), dict)
+            and isinstance(obs_review, dict)
+            and obs_review.get("review_mode") == "OBSERVABILITY_EVIDENCE_REVIEW_WINDOW"
+            and isinstance(obs_review.get("window_spec"), dict)
+        )
+        if not shape_ok:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation="Bounded system composition input surface shape/mode is invalid for index-window mapping.",
+                cross_surface=cross_review,
+                obs_surface=obs_review,
+                warnings=["REQUIRED_SURFACE_SHAPE_INVALID"],
+            )
+
+        if cross_review.get("window_spec") != obs_review.get("window_spec"):
+            return _unavailable(
+                reason="WINDOW_SPEC_MISALIGNED",
+                explanation="Bounded index-window review surfaces are misaligned; composition failed closed.",
+                cross_surface=cross_review,
+                obs_surface=obs_review,
+                warnings=["WINDOW_SPEC_MISALIGNED"],
+            )
+
+        return self._build_system_bounded_evidence_review(
+            cross_review=cross_review,
+            observability_review=obs_review,
+            review_mode="SYSTEM_EVIDENCE_REVIEW_WINDOW",
+            scope_label="INDEX_WINDOW",
+        )
+
+    def get_system_evidence_review_sampler_event_order_window(
+        self,
+        start_event_order: Optional[float] = None,
+        end_event_order: Optional[float] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Bounded System Evidence Review Sampler v1.0 (event-order window).
+        Read-only composition over bounded cross-band and bounded observability evidence-review surfaces.
+        """
+        cross_api_name = "get_cross_band_evidence_review_summary_event_order_window"
+        obs_api_name = "get_observability_evidence_review_summary_event_order_window"
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            cross_surface,
+            obs_surface,
+            warnings: list[str],
+        ) -> dict:
+            return {
+                "review_available": False,
+                "review_mode": "SYSTEM_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+                "review_state": "SYSTEM_EVIDENCE_REVIEW_UNAVAILABLE",
+                "review_reason": reason,
+                "window_spec": {},
+                "evidence_scope": {
+                    "bounded_scope": "EVENT_ORDER_WINDOW",
+                    "scope_equivalence": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                    "coverage_notes": [explanation],
+                },
+                "evidence_counts": {
+                    "cross_band_total_auditable_events": 0,
+                    "observability_total_auditable_events": 0,
+                    "total_auditable_events": 0,
+                    "cross_band_evidence_counts": {},
+                    "observability_evidence_counts": {},
+                },
+                "supporting_surfaces": {
+                    "cross_band_bounded_evidence_review": cross_surface,
+                    "observability_bounded_evidence_review": obs_surface,
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        if not callable(getattr(self, cross_api_name, None)):
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required bounded system source surface missing: "
+                    "get_cross_band_evidence_review_summary_event_order_window."
+                ),
+                cross_surface=None,
+                obs_surface=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+        if not callable(getattr(self, obs_api_name, None)):
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required bounded system source surface missing: "
+                    "get_observability_evidence_review_summary_event_order_window."
+                ),
+                cross_surface=None,
+                obs_surface=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+
+        try:
+            cross_review = self.get_cross_band_evidence_review_summary_event_order_window(
+                start_event_order=start_event_order,
+                end_event_order=end_event_order,
+                max_events=max_events,
+            )
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=(
+                    "get_cross_band_evidence_review_summary_event_order_window() "
+                    f"raised {type(exc).__name__}."
+                ),
+                cross_surface=None,
+                obs_surface=None,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "CROSS_BAND_EVENT_ORDER_WINDOW_REVIEW_CALL_FAILED"],
+            )
+
+        try:
+            obs_review = self.get_observability_evidence_review_summary_event_order_window(
+                start_event_order=start_event_order,
+                end_event_order=end_event_order,
+                max_events=max_events,
+            )
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=(
+                    "get_observability_evidence_review_summary_event_order_window() "
+                    f"raised {type(exc).__name__}."
+                ),
+                cross_surface=cross_review,
+                obs_surface=None,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "OBSERVABILITY_EVENT_ORDER_WINDOW_REVIEW_CALL_FAILED"],
+            )
+
+        shape_ok = (
+            isinstance(cross_review, dict)
+            and cross_review.get("review_mode") == "CROSS_BAND_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW"
+            and isinstance(cross_review.get("window_spec"), dict)
+            and isinstance(obs_review, dict)
+            and obs_review.get("review_mode") == "OBSERVABILITY_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW"
+            and isinstance(obs_review.get("window_spec"), dict)
+        )
+        if not shape_ok:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation="Bounded system composition input surface shape/mode is invalid for event-order mapping.",
+                cross_surface=cross_review,
+                obs_surface=obs_review,
+                warnings=["REQUIRED_SURFACE_SHAPE_INVALID"],
+            )
+
+        if cross_review.get("window_spec") != obs_review.get("window_spec"):
+            return _unavailable(
+                reason="WINDOW_SPEC_MISALIGNED",
+                explanation="Bounded event-order review surfaces are misaligned; composition failed closed.",
+                cross_surface=cross_review,
+                obs_surface=obs_review,
+                warnings=["WINDOW_SPEC_MISALIGNED"],
+            )
+
+        return self._build_system_bounded_evidence_review(
+            cross_review=cross_review,
+            observability_review=obs_review,
+            review_mode="SYSTEM_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            scope_label="EVENT_ORDER_WINDOW",
+        )
+
     def get_observability_evidence_review_summary(self) -> dict:
         """
         Observability Evidence Review Summary v1.0.
