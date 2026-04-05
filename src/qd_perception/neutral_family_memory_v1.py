@@ -6990,6 +6990,247 @@ class NeutralFamilyMemoryV1:
             },
         )
 
+    def _build_system_evidence_review_sampler_consumer_gate(
+        self,
+        *,
+        sampler_api_name: str,
+        stage_lock_api_name: str,
+        gate_mode: str,
+        scope_label: str,
+        expected_sampler_mode: str,
+        expected_stage_lock_mode: str,
+        request_kwargs: dict,
+    ) -> dict:
+        def _unavailable(
+            *,
+            gate_reason: str,
+            explanation: str,
+            sampler_surface,
+            stage_lock_surface,
+            warnings: list[str],
+        ) -> dict:
+            return {
+                "gate_available": False,
+                "gate_mode": gate_mode,
+                "gate_state": "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD",
+                "gate_reason": gate_reason,
+                "consumer_posture": "HOLD",
+                "supporting_surfaces": {
+                    "system_evidence_review_sampler": sampler_surface,
+                    "system_evidence_review_sampler_stage_lock": stage_lock_surface,
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        if not callable(getattr(self, sampler_api_name, None)):
+            return _unavailable(
+                gate_reason="REQUIRED_SURFACE_MISSING",
+                explanation=f"Required bounded sampler surface missing: {sampler_api_name}.",
+                sampler_surface=None,
+                stage_lock_surface=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+        if not callable(getattr(self, stage_lock_api_name, None)):
+            return _unavailable(
+                gate_reason="REQUIRED_SURFACE_MISSING",
+                explanation=f"Required bounded sampler stage-lock surface missing: {stage_lock_api_name}.",
+                sampler_surface=None,
+                stage_lock_surface=None,
+                warnings=["REQUIRED_SURFACE_MISSING"],
+            )
+
+        sampler_surface = None
+        stage_lock_surface = None
+        try:
+            sampler_surface = getattr(self, sampler_api_name)(**request_kwargs)
+        except Exception as exc:
+            return _unavailable(
+                gate_reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"{sampler_api_name}() raised {type(exc).__name__}.",
+                sampler_surface=None,
+                stage_lock_surface=None,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "SAMPLER_SURFACE_CALL_FAILED"],
+            )
+        try:
+            stage_lock_surface = getattr(self, stage_lock_api_name)(**request_kwargs)
+        except Exception as exc:
+            return _unavailable(
+                gate_reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"{stage_lock_api_name}() raised {type(exc).__name__}.",
+                sampler_surface=sampler_surface,
+                stage_lock_surface=None,
+                warnings=["REQUIRED_SURFACE_UNUSABLE", "SAMPLER_STAGE_LOCK_SURFACE_CALL_FAILED"],
+            )
+
+        sampler_shape_ok = (
+            isinstance(sampler_surface, dict)
+            and sampler_surface.get("review_mode") == expected_sampler_mode
+            and isinstance(sampler_surface.get("review_state"), str)
+            and isinstance(sampler_surface.get("review_reason"), str)
+        )
+        stage_lock_shape_ok = (
+            isinstance(stage_lock_surface, dict)
+            and stage_lock_surface.get("audit_mode") == expected_stage_lock_mode
+            and isinstance(stage_lock_surface.get("lock_state"), str)
+            and isinstance(stage_lock_surface.get("reason"), str)
+        )
+        if not sampler_shape_ok or not stage_lock_shape_ok:
+            bad = []
+            if not sampler_shape_ok:
+                bad.append("SAMPLER_SURFACE_SHAPE_INVALID")
+            if not stage_lock_shape_ok:
+                bad.append("SAMPLER_STAGE_LOCK_SURFACE_SHAPE_INVALID")
+            return _unavailable(
+                gate_reason="REQUIRED_SURFACE_SHAPE_INVALID",
+                explanation=(
+                    "Required bounded sampler consumer-gate surface shape invalid: "
+                    + ", ".join(bad)
+                    + "."
+                ),
+                sampler_surface=sampler_surface,
+                stage_lock_surface=stage_lock_surface,
+                warnings=bad,
+            )
+
+        sampler_available = bool(sampler_surface.get("review_available", False))
+        sampler_state = str(
+            sampler_surface.get("review_state", "SYSTEM_EVIDENCE_REVIEW_UNAVAILABLE")
+        )
+        sampler_reason = str(
+            sampler_surface.get("review_reason", "SYSTEM_EVIDENCE_REVIEW_REASON_MISSING")
+        )
+
+        stage_lock_available = bool(stage_lock_surface.get("audit_available", False))
+        stage_lock_state = str(
+            stage_lock_surface.get(
+                "lock_state",
+                "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_UNAVAILABLE",
+            )
+        )
+        stage_lock_reason = str(
+            stage_lock_surface.get("reason", "SAMPLER_STAGE_LOCK_REASON_MISSING")
+        )
+
+        if not stage_lock_available:
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"
+            gate_reason = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_UNAVAILABLE"
+            consumer_posture = "HOLD"
+        elif stage_lock_state == "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_INCONSISTENT":
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"
+            gate_reason = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_INCONSISTENT"
+            consumer_posture = "HOLD"
+        elif stage_lock_state == "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_UNAVAILABLE":
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"
+            gate_reason = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_UNAVAILABLE"
+            consumer_posture = "HOLD"
+        elif stage_lock_state != "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_LOCKED":
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"
+            gate_reason = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_UNUSABLE"
+            consumer_posture = "HOLD"
+        elif not sampler_available:
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"
+            gate_reason = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_UNAVAILABLE"
+            consumer_posture = "HOLD"
+        elif sampler_state == "SYSTEM_EVIDENCE_REVIEW_READY":
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_RELY"
+            gate_reason = "BOUNDED_SAMPLER_READY_AND_STAGE_LOCKED"
+            consumer_posture = "RELY"
+        elif sampler_state == "SYSTEM_EVIDENCE_REVIEW_PARTIAL":
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_LIMITED"
+            gate_reason = "BOUNDED_SAMPLER_PARTIAL_UNDER_STAGE_LOCK"
+            consumer_posture = "LIMITED"
+        elif sampler_state == "SYSTEM_EVIDENCE_REVIEW_UNAVAILABLE":
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"
+            gate_reason = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_UNAVAILABLE"
+            consumer_posture = "HOLD"
+        else:
+            gate_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"
+            gate_reason = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STATE_UNUSABLE"
+            consumer_posture = "HOLD"
+
+        warnings: list[str] = []
+        if isinstance(sampler_surface.get("warnings"), list):
+            warnings.extend(sampler_surface.get("warnings", []))
+        if isinstance(stage_lock_surface.get("warnings"), list):
+            warnings.extend(stage_lock_surface.get("warnings", []))
+
+        return {
+            "gate_available": True,
+            "gate_mode": gate_mode,
+            "gate_state": gate_state,
+            "gate_reason": gate_reason,
+            "consumer_posture": consumer_posture,
+            "supporting_surfaces": {
+                "system_evidence_review_sampler": sampler_surface,
+                "system_evidence_review_sampler_stage_lock": stage_lock_surface,
+            },
+            "warnings": sorted(set(warnings)),
+            "explanation_lines": [
+                f"Bounded consumer gate state: {gate_state}",
+                f"Bounded consumer gate reason: {gate_reason}",
+                f"Bounded scope: {scope_label}",
+                f"Bounded sampler state: {sampler_state}",
+                f"Bounded sampler reason: {sampler_reason}",
+                f"Bounded sampler stage-lock state: {stage_lock_state}",
+                f"Bounded sampler stage-lock reason: {stage_lock_reason}",
+            ],
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    def get_system_evidence_review_sampler_consumer_gate_window(
+        self,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Bounded System Evidence Review Consumer Gate v1.2 (index window).
+        Read-only consumer reliance posture over bounded sampler + bounded sampler stage-lock.
+        """
+        return self._build_system_evidence_review_sampler_consumer_gate(
+            sampler_api_name="get_system_evidence_review_sampler_window",
+            stage_lock_api_name="get_system_evidence_review_sampler_stage_lock_window",
+            gate_mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_CONSUMER_GATE_WINDOW",
+            scope_label="INDEX_WINDOW",
+            expected_sampler_mode="SYSTEM_EVIDENCE_REVIEW_WINDOW",
+            expected_stage_lock_mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_WINDOW",
+            request_kwargs={
+                "start_index": start_index,
+                "end_index": end_index,
+                "max_events": max_events,
+            },
+        )
+
+    def get_system_evidence_review_sampler_consumer_gate_event_order_window(
+        self,
+        start_event_order: Optional[float] = None,
+        end_event_order: Optional[float] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Bounded System Evidence Review Consumer Gate v1.2 (event-order window).
+        Read-only consumer reliance posture over bounded sampler + bounded sampler stage-lock.
+        """
+        return self._build_system_evidence_review_sampler_consumer_gate(
+            sampler_api_name="get_system_evidence_review_sampler_event_order_window",
+            stage_lock_api_name="get_system_evidence_review_sampler_stage_lock_event_order_window",
+            gate_mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_CONSUMER_GATE_EVENT_ORDER_WINDOW",
+            scope_label="EVENT_ORDER_WINDOW",
+            expected_sampler_mode="SYSTEM_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            expected_stage_lock_mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_EVENT_ORDER_WINDOW",
+            request_kwargs={
+                "start_event_order": start_event_order,
+                "end_event_order": end_event_order,
+                "max_events": max_events,
+            },
+        )
+
     def get_observability_evidence_review_summary(self) -> dict:
         """
         Observability Evidence Review Summary v1.0.
