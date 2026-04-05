@@ -30,16 +30,16 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-Bounded System Evidence Review Sampler v1.0
-
-### Last completed layer
-Bounded System Evidence Review Sampler v1.0 implemented and verified
-
-### Current recommended next layer
 Bounded System Evidence Review Consistency / Stage Lock v1.1
 
+### Last completed layer
+Bounded System Evidence Review Consistency / Stage Lock v1.1 implemented and verified
+
+### Current recommended next layer
+Bounded System Evidence Review Consumer Gate v1.2
+
 ### Why this next layer exists
-Bounded system evidence review posture now exists for index and event-order windows. The next honest step is to freeze and audit this bounded sampler contract for drift, hidden dependency creep, and bounded/full-range equivalence leakage.
+Bounded sampler posture and bounded sampler stage-lock audit now both exist for index and event-order windows. The next honest step is a read-only consumer gate for bounded system evidence review surfaces.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -57,6 +57,9 @@ Bounded system evidence review posture now exists for index and event-order wind
 - current bounded system evidence-review sampler surfaces:
   - `get_system_evidence_review_sampler_window(...)`
   - `get_system_evidence_review_sampler_event_order_window(...)`
+- current bounded system evidence-review stage-lock surfaces:
+  - `get_system_evidence_review_sampler_stage_lock_window(...)`
+  - `get_system_evidence_review_sampler_stage_lock_event_order_window(...)`
 
 ---
 
@@ -169,8 +172,14 @@ Bounded system evidence review posture now exists for index and event-order wind
   - `get_observability_evidence_review_summary_event_order_window(...)`
 - Focused bounded system evidence-review sampler tests now exist in:
   - `tests/test_system_evidence_review_sampler_windowed.py`
+- `get_system_evidence_review_sampler_stage_lock_window(...)` and `get_system_evidence_review_sampler_stage_lock_event_order_window(...)` are present in `src/qd_perception/neutral_family_memory_v1.py` as read-only bounded sampler contract audits over:
+  - `get_system_evidence_review_sampler_window(...)`
+  - `get_system_evidence_review_sampler_event_order_window(...)`
+  - matching bounded review anchors only
+- Focused bounded system sampler stage-lock tests now exist in:
+  - `tests/test_system_evidence_review_sampler_stage_lock.py`
 - Latest verified full-suite baseline:
-  - `350 passed, 1 warning`
+  - `357 passed, 1 warning`
 
 ### What is inferred but not yet verified
 - Whether qd_perception_spine should ultimately live inside an existing GitHub repo or become its own Git repo
@@ -184,6 +193,34 @@ Bounded system evidence review posture now exists for index and event-order wind
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-05 (Bounded System Evidence Review Consistency / Stage Lock v1.1)
+#### What we built
+- implemented bounded sampler contract-audit surfaces:
+  - `get_system_evidence_review_sampler_stage_lock_window(...)`
+  - `get_system_evidence_review_sampler_stage_lock_event_order_window(...)`
+- audit checks include:
+  - matching-mode bounded composition integrity
+  - fail-closed behavior under window-spec misalignment
+  - bounded scope non-equivalence to full-range
+  - full-range surfaces remain non-predicate context
+  - read-only guardrail flags
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_system_evidence_review_sampler_stage_lock.py`
+- `BUILD_LEDGER.md`
+- `runs/bounded_system_evidence_review_sampler_stage_lock_v1_1_transcript.txt`
+- `runs/bounded_system_evidence_review_sampler_stage_lock_v1_1_delivery.txt`
+
+#### Tests run
+- focused bounded sampler stage-lock tests with `PYTHONPATH=src`: `7 passed, 1 warning`
+- adjacent bounded sampler/review tests with `PYTHONPATH=src`: `34 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `357 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
 ### Session date: 2026-04-05 (Bounded System Evidence Review Sampler v1.0)
 #### What we built
 - implemented bounded system evidence-review sampler surfaces:
@@ -411,20 +448,23 @@ Bounded system evidence review posture now exists for index and event-order wind
 - `get_observability_evidence_review_summary_event_order_window(...)`
 - `get_system_evidence_review_sampler_window(...)`
 - `get_system_evidence_review_sampler_event_order_window(...)`
+- `get_system_evidence_review_sampler_stage_lock_window(...)`
+- `get_system_evidence_review_sampler_stage_lock_event_order_window(...)`
 
 ---
 
 ## Next Step
 ### Immediate next step
-Bounded System Evidence Review Consistency / Stage Lock v1.1
+Bounded System Evidence Review Consumer Gate v1.2
 
 ### Why this is the next honest step
-Bounded system sampler outputs are now live and need a contract freeze/audit layer to detect drift and preserve strict bounded-scope posture.
+Bounded system sampler and its stage-lock audit now provide posture + integrity. A read-only consumer gate can now expose bounded reliance posture without reopening lower semantics.
 
 ### What it must use
 - `get_system_evidence_review_sampler_window(...)`
 - `get_system_evidence_review_sampler_event_order_window(...)`
-- bounded source review surfaces only as supporting contract context
+- `get_system_evidence_review_sampler_stage_lock_window(...)`
+- `get_system_evidence_review_sampler_stage_lock_event_order_window(...)`
 
 ### What it must NOT do
 - invent new truth predicates
@@ -489,7 +529,7 @@ Read these sections first:
 5. Next Step
 
 Current verified suite count:
-- Full suite: 350 passed, 1 warning
+- Full suite: 357 passed, 1 warning
 
 Current frozen top surface:
 - get_unified_system_consumer_posture_summary()
@@ -507,7 +547,7 @@ Current observability evidence-review audit surface:
 - get_observability_evidence_review_stage_lock_audit()
 
 Immediate next target:
-- Bounded System Evidence Review Consistency / Stage Lock v1.1
+- Bounded System Evidence Review Consumer Gate v1.2
 
 Do not reopen locked lower semantics.
 Do not invent new predicates.
@@ -518,6 +558,9 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ## End-of-Day Snapshot
 ### Built today
+- Implemented Bounded System Evidence Review Consistency / Stage Lock v1.1 (index + event-order)
+- Added focused bounded system sampler stage-lock tests
+- Verified full suite on updated bounded sampler stage-lock frontier
 - Implemented Bounded System Evidence Review Sampler v1.0 (index + event-order)
 - Added focused bounded system sampler tests
 - Verified full suite on updated bounded system sampler frontier
@@ -544,7 +587,8 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - bounded cross-band evidence-review windowed surfaces are present in `neutral_family_memory_v1.py`
 - bounded observability evidence-review windowed surfaces are present in `neutral_family_memory_v1.py`
 - bounded system evidence-review sampler surfaces are present in `neutral_family_memory_v1.py`
-- final full suite reported green at 350 passed, 1 warning
+- bounded system evidence-review sampler stage-lock surfaces are present in `neutral_family_memory_v1.py`
+- final full suite reported green at 357 passed, 1 warning
 - focused system-evidence revalidation suite reported green at 28 passed, 1 warning
 - top unified posture stage lock present and validated
 - repo initialized and first local checkpoint commit created
@@ -556,7 +600,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ### First action next session
 - read BUILD_LEDGER.md first
-- inspect/build Bounded System Evidence Review Consistency / Stage Lock v1.1
+- inspect/build Bounded System Evidence Review Consumer Gate v1.2
 - update ledger again before stopping
 
 ### Pressure items / risks

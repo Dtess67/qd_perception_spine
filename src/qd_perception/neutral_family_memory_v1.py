@@ -6515,6 +6515,481 @@ class NeutralFamilyMemoryV1:
             scope_label="EVENT_ORDER_WINDOW",
         )
 
+    def _audit_system_evidence_review_sampler_stage_lock(
+        self,
+        *,
+        sampler_api_name: str,
+        cross_api_name: str,
+        obs_api_name: str,
+        audit_mode: str,
+        scope_label: str,
+        expected_sampler_mode: str,
+        expected_cross_mode: str,
+        expected_obs_mode: str,
+        request_kwargs: dict,
+    ) -> dict:
+        _GUARDRAIL_FIELDS = [
+            "lineage_mutation_performed",
+            "event_creation_performed",
+            "history_rewrite_performed",
+        ]
+        _FULL_RANGE_APIS = [
+            "get_cross_band_evidence_review_summary",
+            "get_observability_evidence_review_summary",
+            "get_system_evidence_review_summary",
+        ]
+
+        def _check(name: str, passed: bool, reason: str, details: Optional[dict] = None) -> dict:
+            return {
+                "check_name": name,
+                "passed": bool(passed),
+                "reason": reason,
+                "details": details if isinstance(details, dict) else {},
+            }
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            sampler_surface,
+            cross_surface,
+            obs_surface,
+        ) -> dict:
+            return {
+                "audit_available": False,
+                "audit_mode": audit_mode,
+                "lock_state": "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_UNAVAILABLE",
+                "reason": reason,
+                "check_results": [],
+                "contract_surface": {
+                    "required_surfaces": {
+                        "sampler_api_present": callable(getattr(self, sampler_api_name, None)),
+                        "cross_bounded_review_api_present": callable(getattr(self, cross_api_name, None)),
+                        "observability_bounded_review_api_present": callable(getattr(self, obs_api_name, None)),
+                    },
+                    "scope_contract": {
+                        "bounded_scope": scope_label,
+                        "scope_equivalence_required": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                        "matching_mode_required": True,
+                    },
+                    "disallowed_full_range_posture_predicates": {
+                        api_name: True for api_name in _FULL_RANGE_APIS
+                    },
+                },
+                "supporting_surfaces": {
+                    "system_evidence_review_sampler": sampler_surface,
+                    "cross_band_bounded_evidence_review": cross_surface,
+                    "observability_bounded_evidence_review": obs_surface,
+                },
+                "warnings": [],
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        missing = []
+        if not callable(getattr(self, sampler_api_name, None)):
+            missing.append(sampler_api_name)
+        if not callable(getattr(self, cross_api_name, None)):
+            missing.append(cross_api_name)
+        if not callable(getattr(self, obs_api_name, None)):
+            missing.append(obs_api_name)
+        if missing:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation="Required bounded sampler audit surface missing: " + ", ".join(missing) + ".",
+                sampler_surface=None,
+                cross_surface=None,
+                obs_surface=None,
+            )
+
+        try:
+            sampler_surface = getattr(self, sampler_api_name)(**request_kwargs)
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"{sampler_api_name}() raised {type(exc).__name__}.",
+                sampler_surface=None,
+                cross_surface=None,
+                obs_surface=None,
+            )
+
+        try:
+            cross_surface = getattr(self, cross_api_name)(**request_kwargs)
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"{cross_api_name}() raised {type(exc).__name__}.",
+                sampler_surface=sampler_surface,
+                cross_surface=None,
+                obs_surface=None,
+            )
+
+        try:
+            obs_surface = getattr(self, obs_api_name)(**request_kwargs)
+        except Exception as exc:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_UNUSABLE",
+                explanation=f"{obs_api_name}() raised {type(exc).__name__}.",
+                sampler_surface=sampler_surface,
+                cross_surface=cross_surface,
+                obs_surface=None,
+            )
+
+        checks: list[dict] = []
+        warnings: list[str] = []
+
+        sampler_shape_ok = (
+            isinstance(sampler_surface, dict)
+            and sampler_surface.get("review_mode") == expected_sampler_mode
+            and isinstance(sampler_surface.get("review_state"), str)
+            and isinstance(sampler_surface.get("review_reason"), str)
+            and isinstance(sampler_surface.get("window_spec"), dict)
+            and isinstance(sampler_surface.get("evidence_scope"), dict)
+            and isinstance(sampler_surface.get("evidence_counts"), dict)
+        )
+        checks.append(
+            _check(
+                "SAMPLER_SURFACE_USABLE",
+                sampler_shape_ok,
+                "SAMPLER_SHAPE_OK" if sampler_shape_ok else "SAMPLER_SHAPE_INVALID",
+                {"review_mode": sampler_surface.get("review_mode") if isinstance(sampler_surface, dict) else None},
+            )
+        )
+
+        cross_shape_ok = (
+            isinstance(cross_surface, dict)
+            and cross_surface.get("review_mode") == expected_cross_mode
+            and isinstance(cross_surface.get("window_spec"), dict)
+            and isinstance(cross_surface.get("review_state"), str)
+        )
+        checks.append(
+            _check(
+                "CROSS_BOUNDED_ANCHOR_USABLE",
+                cross_shape_ok,
+                "CROSS_BOUNDED_SHAPE_OK" if cross_shape_ok else "CROSS_BOUNDED_SHAPE_INVALID",
+                {"review_mode": cross_surface.get("review_mode") if isinstance(cross_surface, dict) else None},
+            )
+        )
+
+        obs_shape_ok = (
+            isinstance(obs_surface, dict)
+            and obs_surface.get("review_mode") == expected_obs_mode
+            and isinstance(obs_surface.get("window_spec"), dict)
+            and isinstance(obs_surface.get("review_state"), str)
+        )
+        checks.append(
+            _check(
+                "OBSERVABILITY_BOUNDED_ANCHOR_USABLE",
+                obs_shape_ok,
+                "OBS_BOUNDED_SHAPE_OK" if obs_shape_ok else "OBS_BOUNDED_SHAPE_INVALID",
+                {"review_mode": obs_surface.get("review_mode") if isinstance(obs_surface, dict) else None},
+            )
+        )
+
+        if not (sampler_shape_ok and cross_shape_ok and obs_shape_ok):
+            checks_failed = sum(1 for c in checks if c.get("passed") is False)
+            return {
+                "audit_available": True,
+                "audit_mode": audit_mode,
+                "lock_state": "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_INCONSISTENT",
+                "reason": "CHECK_FAILURES_DETECTED",
+                "check_results": checks,
+                "contract_surface": {
+                    "required_surfaces": {
+                        "sampler_api_present": True,
+                        "cross_bounded_review_api_present": True,
+                        "observability_bounded_review_api_present": True,
+                    },
+                    "scope_contract": {
+                        "bounded_scope": scope_label,
+                        "scope_equivalence_required": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                        "matching_mode_required": True,
+                    },
+                    "disallowed_full_range_posture_predicates": {
+                        api_name: True for api_name in _FULL_RANGE_APIS
+                    },
+                    "checks_run": len(checks),
+                    "checks_failed": checks_failed,
+                },
+                "supporting_surfaces": {
+                    "system_evidence_review_sampler": sampler_surface,
+                    "cross_band_bounded_evidence_review": cross_surface,
+                    "observability_bounded_evidence_review": obs_surface,
+                },
+                "warnings": warnings,
+                "explanation_lines": ["Sampler/anchor surface shape invalid for bounded stage-lock audit."],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        cross_spec = cross_surface.get("window_spec", {})
+        obs_spec = obs_surface.get("window_spec", {})
+        sampler_spec = sampler_surface.get("window_spec", {})
+        anchors_aligned = cross_spec == obs_spec
+        sampler_matches_anchors = sampler_spec == cross_spec
+        checks.append(
+            _check(
+                "MATCHING_WINDOW_SPEC_ACROSS_BOUNDED_INPUTS",
+                anchors_aligned,
+                "WINDOW_SPECS_ALIGNED" if anchors_aligned else "WINDOW_SPECS_MISALIGNED",
+                {"cross_window_spec": cross_spec, "observability_window_spec": obs_spec},
+            )
+        )
+        checks.append(
+            _check(
+                "SAMPLER_WINDOW_SPEC_MATCHES_INPUTS",
+                sampler_matches_anchors,
+                "SAMPLER_WINDOW_SPEC_MATCHED" if sampler_matches_anchors else "SAMPLER_WINDOW_SPEC_MISMATCH",
+                {"sampler_window_spec": sampler_spec, "anchor_window_spec": cross_spec},
+            )
+        )
+
+        scope = sampler_surface.get("evidence_scope", {})
+        scope_non_equivalent = (
+            isinstance(scope, dict)
+            and scope.get("scope_equivalence") == "BOUNDED_NOT_FULL_RANGE_EQUIVALENT"
+        )
+        checks.append(
+            _check(
+                "BOUNDED_SCOPE_NON_EQUIVALENCE_EXPLICIT",
+                scope_non_equivalent,
+                "SCOPE_NON_EQUIVALENCE_EXPLICIT"
+                if scope_non_equivalent
+                else "SCOPE_NON_EQUIVALENCE_MISSING_OR_DRIFTED",
+                {"scope_equivalence": scope.get("scope_equivalence") if isinstance(scope, dict) else None},
+            )
+        )
+
+        guardrails_ok = all(sampler_surface.get(flag) is False for flag in _GUARDRAIL_FIELDS)
+        checks.append(
+            _check(
+                "READ_ONLY_GUARDRAILS_FALSE",
+                guardrails_ok,
+                "GUARDRAILS_FALSE" if guardrails_ok else "GUARDRAIL_FLAG_DRIFT_DETECTED",
+                {flag: sampler_surface.get(flag) for flag in _GUARDRAIL_FIELDS},
+            )
+        )
+
+        # Validate fail-closed behavior for window-spec misalignment regression.
+        fail_closed_ok = False
+        fail_closed_details = {}
+        original_obs_api = getattr(self, obs_api_name)
+        try:
+            def _misaligned_obs(**kwargs):
+                out = original_obs_api(**kwargs)
+                if isinstance(out, dict):
+                    mutated = dict(out)
+                    ws = mutated.get("window_spec", {})
+                    if isinstance(ws, dict):
+                        ws2 = dict(ws)
+                        if scope_label == "INDEX_WINDOW":
+                            ws2["applied_end_index"] = (
+                                int(ws2.get("applied_end_index", 0))
+                                + 1
+                                if isinstance(ws2.get("applied_end_index"), int)
+                                else 1
+                            )
+                        else:
+                            ws2["applied_end_event_order"] = (
+                                float(ws2.get("applied_end_event_order", 0.0)) + 1.0
+                                if isinstance(ws2.get("applied_end_event_order"), (int, float))
+                                else 1.0
+                            )
+                        mutated["window_spec"] = ws2
+                    return mutated
+                return out
+
+            setattr(self, obs_api_name, _misaligned_obs)
+            drift_out = getattr(self, sampler_api_name)(**request_kwargs)
+            if isinstance(drift_out, dict):
+                fail_closed_ok = (
+                    drift_out.get("review_state") == "SYSTEM_EVIDENCE_REVIEW_UNAVAILABLE"
+                    and drift_out.get("review_reason") == "WINDOW_SPEC_MISALIGNED"
+                )
+                fail_closed_details = {
+                    "drift_review_state": drift_out.get("review_state"),
+                    "drift_review_reason": drift_out.get("review_reason"),
+                }
+        except Exception as exc:
+            fail_closed_ok = False
+            fail_closed_details = {"exception": type(exc).__name__}
+        finally:
+            setattr(self, obs_api_name, original_obs_api)
+
+        checks.append(
+            _check(
+                "FAIL_CLOSED_ON_WINDOW_SPEC_MISALIGNMENT",
+                fail_closed_ok,
+                "FAIL_CLOSED_BEHAVIOR_PRESERVED"
+                if fail_closed_ok
+                else "FAIL_CLOSED_BEHAVIOR_DRIFTED",
+                fail_closed_details,
+            )
+        )
+
+        # Full-range surfaces are context-only and must never act as bounded posture predicates.
+        full_range_non_predicate_ok = False
+        full_range_details = {}
+        original_full_range = {}
+        try:
+            baseline_state = sampler_surface.get("review_state")
+            baseline_reason = sampler_surface.get("review_reason")
+            for api_name in _FULL_RANGE_APIS:
+                original_full_range[api_name] = getattr(self, api_name, None)
+
+                def _raise_forbidden(*_args, **_kwargs):
+                    raise AssertionError("FORBIDDEN_FULL_RANGE_DEPENDENCY")
+
+                setattr(self, api_name, _raise_forbidden)
+
+            probe_out = getattr(self, sampler_api_name)(**request_kwargs)
+            if isinstance(probe_out, dict):
+                full_range_non_predicate_ok = (
+                    probe_out.get("review_state") == baseline_state
+                    and probe_out.get("review_reason") == baseline_reason
+                )
+                full_range_details = {
+                    "baseline_state": baseline_state,
+                    "probe_state": probe_out.get("review_state"),
+                    "baseline_reason": baseline_reason,
+                    "probe_reason": probe_out.get("review_reason"),
+                }
+        except Exception as exc:
+            full_range_non_predicate_ok = False
+            full_range_details = {"exception": type(exc).__name__}
+        finally:
+            for api_name, original_fn in original_full_range.items():
+                setattr(self, api_name, original_fn)
+
+        checks.append(
+            _check(
+                "FULL_RANGE_SURFACES_CONTEXT_ONLY_NON_PREDICATE",
+                full_range_non_predicate_ok,
+                "NO_FULL_RANGE_PREDICATE_LEAKAGE"
+                if full_range_non_predicate_ok
+                else "FULL_RANGE_PREDICATE_LEAKAGE_DETECTED",
+                full_range_details,
+            )
+        )
+
+        checks_failed = sum(1 for c in checks if c.get("passed") is False)
+        checks_passed = sum(1 for c in checks if c.get("passed") is True)
+        if checks_failed == 0:
+            lock_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_LOCKED"
+            reason = "ALL_CONSISTENCY_CHECKS_PASSED"
+        else:
+            lock_state = "SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_INCONSISTENT"
+            reason = "CHECK_FAILURES_DETECTED"
+            warnings.append("SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_CHECK_FAILURES")
+
+        return {
+            "audit_available": True,
+            "audit_mode": audit_mode,
+            "lock_state": lock_state,
+            "reason": reason,
+            "check_results": checks,
+            "contract_surface": {
+                "required_surfaces": {
+                    "sampler_api_present": True,
+                    "cross_bounded_review_api_present": True,
+                    "observability_bounded_review_api_present": True,
+                },
+                "allowed_audited_surfaces_only": [
+                    sampler_api_name,
+                    cross_api_name,
+                    obs_api_name,
+                ],
+                "scope_contract": {
+                    "bounded_scope": scope_label,
+                    "scope_equivalence_required": "BOUNDED_NOT_FULL_RANGE_EQUIVALENT",
+                    "matching_mode_required": True,
+                },
+                "disallowed_full_range_posture_predicates": {
+                    api_name: True for api_name in _FULL_RANGE_APIS
+                },
+                "checks_run": len(checks),
+                "checks_passed": checks_passed,
+                "checks_failed": checks_failed,
+            },
+            "supporting_surfaces": {
+                "system_evidence_review_sampler": sampler_surface,
+                "cross_band_bounded_evidence_review": cross_surface,
+                "observability_bounded_evidence_review": obs_surface,
+            },
+            "warnings": sorted(
+                set(
+                    warnings
+                    + list(sampler_surface.get("warnings", []))
+                    + list(cross_surface.get("warnings", []))
+                    + list(obs_surface.get("warnings", []))
+                )
+            ),
+            "explanation_lines": [
+                f"Sampler bounded stage-lock state: {lock_state}",
+                f"Sampler bounded stage-lock reason: {reason}",
+                f"Bounded scope audited: {scope_label}",
+                f"Checks passed/failed: {checks_passed}/{checks_failed}",
+            ],
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    def get_system_evidence_review_sampler_stage_lock_window(
+        self,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Bounded System Evidence Review Consistency / Stage Lock v1.1 (index window).
+        Read-only contract freeze/audit over bounded system sampler index-window composition.
+        """
+        return self._audit_system_evidence_review_sampler_stage_lock(
+            sampler_api_name="get_system_evidence_review_sampler_window",
+            cross_api_name="get_cross_band_evidence_review_summary_window",
+            obs_api_name="get_observability_evidence_review_summary_window",
+            audit_mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_WINDOW",
+            scope_label="INDEX_WINDOW",
+            expected_sampler_mode="SYSTEM_EVIDENCE_REVIEW_WINDOW",
+            expected_cross_mode="CROSS_BAND_EVIDENCE_REVIEW_WINDOW",
+            expected_obs_mode="OBSERVABILITY_EVIDENCE_REVIEW_WINDOW",
+            request_kwargs={
+                "start_index": start_index,
+                "end_index": end_index,
+                "max_events": max_events,
+            },
+        )
+
+    def get_system_evidence_review_sampler_stage_lock_event_order_window(
+        self,
+        start_event_order: Optional[float] = None,
+        end_event_order: Optional[float] = None,
+        max_events: Optional[int] = None,
+    ) -> dict:
+        """
+        Bounded System Evidence Review Consistency / Stage Lock v1.1 (event-order window).
+        Read-only contract freeze/audit over bounded system sampler event-order composition.
+        """
+        return self._audit_system_evidence_review_sampler_stage_lock(
+            sampler_api_name="get_system_evidence_review_sampler_event_order_window",
+            cross_api_name="get_cross_band_evidence_review_summary_event_order_window",
+            obs_api_name="get_observability_evidence_review_summary_event_order_window",
+            audit_mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_EVENT_ORDER_WINDOW",
+            scope_label="EVENT_ORDER_WINDOW",
+            expected_sampler_mode="SYSTEM_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            expected_cross_mode="CROSS_BAND_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            expected_obs_mode="OBSERVABILITY_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            request_kwargs={
+                "start_event_order": start_event_order,
+                "end_event_order": end_event_order,
+                "max_events": max_events,
+            },
+        )
+
     def get_observability_evidence_review_summary(self) -> dict:
         """
         Observability Evidence Review Summary v1.0.
