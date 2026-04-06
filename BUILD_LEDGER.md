@@ -30,16 +30,16 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-Bounded System Evidence Review Consumer Gate v1.2
+QD Decision Loop Prototype v0.0a (Edge-Case Pressure Tests)
 
 ### Last completed layer
-Bounded System Evidence Review Consumer Gate v1.2 implemented and verified
+QD Decision Loop Prototype v0.0a edge-case pressure tests completed and verified
 
 ### Current recommended next layer
-Bounded System Evidence Review Consumer Gate Consistency / Stage Lock v1.3
+HOLD - Keep decision-loop prototype isolated and manual-input only; no integration/persistence/autonomy without explicit contract
 
 ### Why this next layer exists
-Bounded sampler consumer gate posture now exists for both index and event-order windows. The next honest step is to freeze/audit this new bounded consumer gate contract for drift, hidden dependencies, and fail-closed integrity.
+The isolated prototype now has edge-case pressure coverage and minimal spec-consistency hardening, supporting additional manual-trace pressure tests without coupling into locked evidence/consumer surfaces.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -63,6 +63,55 @@ Bounded sampler consumer gate posture now exists for both index and event-order 
 - current bounded system evidence-review consumer gate surfaces:
   - `get_system_evidence_review_sampler_consumer_gate_window(...)`
   - `get_system_evidence_review_sampler_consumer_gate_event_order_window(...)`
+- current durable-ledger root-truth audit surface:
+  - `get_durable_transition_ledger_integrity_audit()`
+- current corrective-learning contract surfaces:
+  - `CorrectiveLearningRecordV1a`
+  - `get_corrective_learning_record_contract_v1a()`
+  - `validate_corrective_learning_record_v1a(...)`
+  - `build_corrective_learning_record_v1a(...)`
+  - `format_corrective_learning_record_v1a(...)`
+  - `map_durable_ledger_audit_findings_to_corrective_records_v1_2(...)`
+- current isolated decision-loop prototype surface:
+  - `resolve_manual_decision_trace_v0_0(...)`
+
+### Design-anchor frontier (spec-only)
+- `QD Decision Loop v0.1` anchored in `QD_DECISION_LOOP_v0_1.md`
+- `QD Decision Loop v0.2 - Resolution Criteria Draft` anchored in `QD_DECISION_LOOP_v0_2.md`
+- `QD Decision Loop v0.3 - Branch Weighting / Collapse Heuristics Draft` anchored in `QD_DECISION_LOOP_v0_3.md`
+- `QD Decision Loop v0.4 - Worked Decision Traces` anchored in `QD_DECISION_LOOP_v0_4.md`
+- `QD Decision Loop v0.4a - Ambiguity Closure Notes` anchored in `QD_DECISION_LOOP_v0_4a.md`
+- `QD Decision Loop Prototype v0.0 - Manual Trace Resolver Plan` anchored in `QD_DECISION_LOOP_PROTOTYPE_v0_0_PLAN.md`
+- one-line definition:
+  - `Question -> Delta Split -> Polarity Evaluation -> Temporal Assessment -> Resolution`
+- clarified geometry interpretation:
+  - internal HOLD is a zone, not a node
+  - external HOLD is a node, not a zone
+  - contact plane is the active synthesis region
+  - resolution collapses earned tension, not mere uncertainty
+- v0.2 draft additions:
+  - explicit collapse-vs-block resolution criteria
+  - explicit output-class criteria (`-1`, `+1`, conditional, limited/caution, external HOLD)
+  - explicit Delta Ingress criteria and weak/missing prior-state handling
+  - explicit temporal evidence asymmetry notes (grounded recall > softer projection)
+- v0.3 draft additions:
+  - explicit branch-strength input classes for `-1` and `+1`
+  - explicit weighting effects for substrate degradation and corrective relevance
+  - explicit collapse heuristics draft for resolved/conditional/limited/external HOLD outputs
+- v0.4 draft additions:
+  - canonical declarative worked traces for collapse/block outcomes
+  - explicit per-trace contributions (past/projection/substrate/corrective/contradiction context)
+  - ambiguity notes exposed by worked traces
+- v0.4a closure additions:
+  - explicit boundary rules for conditional answer vs limited/caution answer
+  - explicit projection support vs projection-upgrade constraints
+  - explicit qualitative substrate bands (`usable`, `degraded`, `collapse-blocking`)
+  - explicit qualitative corrective-learning suppression bands (`advisory`, `caution-inducing`, `collapse-blocking`)
+- scope posture:
+  - specification only in this step
+  - no runtime behavior
+  - no autonomous decision logic
+  - no coupling into existing evidence/consumer surfaces
 
 ---
 
@@ -188,8 +237,54 @@ Bounded sampler consumer gate posture now exists for both index and event-order 
   - `get_system_evidence_review_sampler_stage_lock_event_order_window(...)`
 - Focused bounded system sampler consumer-gate tests now exist in:
   - `tests/test_system_evidence_review_sampler_consumer_gate.py`
+- Cross-window consumer-gate parity tests now exist in:
+  - `test_cross_window_equivalence_ready_locked_yields_rely`
+  - `test_cross_window_equivalence_partial_locked_yields_limited`
+  - `test_cross_window_equivalence_inconsistent_stage_lock_yields_hold`
+- Truth note:
+  - production inspection found no real bounded consumer-gate bug; both modes already share one helper and decision branches
+  - parity hardening closed the observed cross-window test gap, so no new runtime API layer was earned in this session
+- `get_durable_transition_ledger_integrity_audit()` is present in `src/qd_perception/neutral_family_memory_v1.py` as a read-only root-truth durable ledger audit over:
+  - `get_event_ledger()`
+  - `_get_ledger_event_by_id(...)`
+  - `run_lineage_integrity_audit(...)`
+  - `get_lineage_integrity_report(...)`
+- Focused durable-ledger integrity audit tests now exist in:
+  - `tests/test_durable_transition_ledger_integrity_audit.py`
+- Corrective Learning v1.0a contract/schema surfaces are present in `src/qd_perception/neutral_family_memory_v1.py`:
+  - `CorrectiveLearningRecordV1a`
+  - `get_corrective_learning_record_contract_v1a()`
+  - `validate_corrective_learning_record_v1a(...)`
+- Corrective Learning v1.1 usage-path surfaces are present in `src/qd_perception/neutral_family_memory_v1.py`:
+  - `build_corrective_learning_record_v1a(...)`
+  - `format_corrective_learning_record_v1a(...)`
+- Corrective Learning v1.2 mapping surface is present in `src/qd_perception/neutral_family_memory_v1.py`:
+  - `map_durable_ledger_audit_findings_to_corrective_records_v1_2(...)`
+  - mapping scope currently explicit to `get_durable_transition_ledger_integrity_audit()` findings only
+- Focused corrective-learning contract tests now exist in:
+  - `tests/test_corrective_learning_contract_v1a.py`
+- Focused corrective-learning builder/formatter tests now exist in:
+  - `tests/test_corrective_learning_builder_formatter_v1_1.py`
+- Focused corrective-learning audit-mapping tests now exist in:
+  - `tests/test_corrective_learning_audit_mapping_v1_2.py`
+- Design anchor spec now exists at repo root:
+  - `QD_DECISION_LOOP_v0_1.md`
+  - `QD_DECISION_LOOP_v0_2.md`
+  - `QD_DECISION_LOOP_v0_3.md`
+  - `QD_DECISION_LOOP_v0_4.md`
+  - `QD_DECISION_LOOP_v0_4a.md`
+  - `QD_DECISION_LOOP_PROTOTYPE_v0_0_PLAN.md`
+- Decision-loop prototype runtime surface now exists in:
+  - `src/qd_perception/decision_loop_prototype_v0_0.py`
+  - `resolve_manual_decision_trace_v0_0(...)`
+  - `ManualTraceInputV0`
+- Focused decision-loop prototype tests now exist in:
+  - `tests/test_decision_loop_prototype_v0_0.py`
+- Prototype v0.0a pressure-test corrections now applied:
+  - degraded substrate no longer blocks all resolved collapse paths when grounded dominance remains strong
+  - non-blocking recall/projection contradiction is routed to `limited_caution_answer` instead of premature `external_hold`
 - Latest verified full-suite baseline:
-  - `365 passed, 1 warning`
+  - `404 passed, 1 warning`
 
 ### What is inferred but not yet verified
 - Whether qd_perception_spine should ultimately live inside an existing GitHub repo or become its own Git repo
@@ -203,6 +298,402 @@ Bounded sampler consumer gate posture now exists for both index and event-order 
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-06 (Decision Loop Prototype v0.0a - Edge-Case Pressure Tests)
+#### What we built
+- added focused edge-case tests for prototype chamber behavior:
+  - tie-ish branch pulls under usable substrate/low contradiction
+  - usable substrate with caution-inducing suppression
+  - degraded substrate with strong grounded recall
+  - projection-strong case with missing prior state
+  - contradictory recall/projection under non-blocking substrate
+  - named-conditions present vs absent for conditional-trend case
+  - precedence ordering for collapse-blocking substrate/suppression
+  - underspecified input fail-closed behavior
+- two real spec-consistency mismatches were exposed and corrected minimally in resolver logic:
+  - degraded substrate now applies strictness without universally forbidding resolved output when grounded dominance remains strong
+  - non-blocking recall/projection conflict now resolves to `limited_caution_answer` (not default `external_hold`)
+- scope remained isolated:
+  - no persistence
+  - no autonomous learning
+  - no coupling into existing evidence/consumer runtime surfaces
+
+#### Files changed
+- `src/qd_perception/decision_loop_prototype_v0_0.py`
+- `tests/test_decision_loop_prototype_v0_0.py`
+- `BUILD_LEDGER.md`
+
+#### Tests run
+- focused prototype edge-case tests with `PYTHONPATH=src`: `15 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `404 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
+### Session date: 2026-04-06 (QD Decision Loop Prototype v0.0 - Manual Trace Resolver)
+#### What we built
+- implemented an isolated prototype runtime module:
+  - `src/qd_perception/decision_loop_prototype_v0_0.py`
+- added deterministic manual-trace resolver surface:
+  - `resolve_manual_decision_trace_v0_0(...)`
+- added lightweight typed manual input/output contract support:
+  - `ManualTraceInputV0`
+  - qualitative enums for branch/temporal/substrate/suppression/contradiction/prior-state/output classes
+- enforced fail-closed prototype rules:
+  - collapse-blocking substrate/suppression and high/blocking contradiction force `external_hold`
+  - projection-alone upgrade to resolved is blocked under sparse/conflicting recall or degraded substrate
+  - conditional requires directional candidate + named conditions
+  - limited/caution covers mixed/weak/caution-pressure cases
+- kept scope strict:
+  - no persistence
+  - no autonomous learning
+  - no coupling into evidence/consumer runtime surfaces
+
+#### Files changed
+- `src/qd_perception/decision_loop_prototype_v0_0.py`
+- `tests/test_decision_loop_prototype_v0_0.py`
+- `BUILD_LEDGER.md`
+
+#### Tests run
+- focused prototype tests with `PYTHONPATH=src`: `6 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `395 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
+### Session date: 2026-04-06 (QD Decision Loop v0.4a - Ambiguity Closure Notes / Spec Only)
+#### What we built
+- added a focused ambiguity-closure design artifact:
+  - `QD_DECISION_LOOP_v0_4a.md`
+- closed the specific v0.4 ambiguities for:
+  - conditional answer vs limited/caution boundary
+  - projection support vs projection-upgrade eligibility
+  - qualitative substrate degradation bands
+  - qualitative corrective-learning suppression bands
+- preserved spec-only posture:
+  - no runtime behavior changes
+  - no coupling into existing evidence/consumer surfaces
+
+#### Files changed
+- `QD_DECISION_LOOP_v0_4a.md`
+- `BUILD_LEDGER.md`
+
+#### Tests run
+- none (spec-only step; no runtime/code-path changes)
+
+### Session date: 2026-04-06 (QD Decision Loop v0.4 - Worked Decision Traces / Spec Only)
+#### What we built
+- added a worked-trace design artifact:
+  - `QD_DECISION_LOOP_v0_4.md`
+- included canonical declarative traces for:
+  - strong past recall / weak projection
+  - weak past recall / strong projection
+  - substrate degradation forcing external HOLD
+  - corrective-learning relevance suppressing collapse
+  - mixed evidence producing limited/caution output
+- each trace records:
+  - input/delta
+  - polarity split
+  - internal HOLD state
+  - past recall contribution
+  - future projection contribution
+  - substrate integrity contribution
+  - corrective-learning contribution
+  - collapse-vs-block rationale
+  - output class
+- explicit ambiguity notes were added to capture unresolved spec boundaries.
+
+#### Files changed
+- `QD_DECISION_LOOP_v0_4.md`
+- `BUILD_LEDGER.md`
+- `runs/qd_decision_loop_v0_4_worked_traces_transcript.txt`
+- `runs/qd_decision_loop_v0_4_worked_traces_delivery.txt`
+
+#### Tests run
+- none (spec-only step; no runtime/code-path changes)
+
+### Session date: 2026-04-06 (QD Decision Loop v0.3 - Branch Weighting / Collapse Heuristics Draft / Spec Only)
+#### What we built
+- added a new decision-loop design artifact:
+  - `QD_DECISION_LOOP_v0_3.md`
+- defined draft branch-strength inputs for both `-1` and `+1`
+- defined evidence classes for:
+  - grounded past recall
+  - future projection
+  - substrate integrity quality
+  - corrective-learning relevance
+  - contradiction pressure
+- defined weighting asymmetry rules for:
+  - grounded recall vs projection
+  - substrate degradation effects
+  - remembered wrongness effects
+- defined collapse heuristics draft for:
+  - resolved `-1`
+  - resolved `+1`
+  - conditional answer
+  - limited/caution answer
+  - external HOLD
+- preserved non-goals:
+  - no runtime implementation
+  - no autonomous decision logic
+  - no hidden coupling into existing code paths
+
+#### Files changed
+- `QD_DECISION_LOOP_v0_3.md`
+- `BUILD_LEDGER.md`
+- `runs/qd_decision_loop_v0_3_branch_weighting_transcript.txt`
+- `runs/qd_decision_loop_v0_3_branch_weighting_delivery.txt`
+
+#### Tests run
+- none (spec-only step; no runtime/code-path changes)
+
+### Session date: 2026-04-06 (QD Decision Loop v0.2 - Resolution Criteria Draft / Spec Only)
+#### What we built
+- added a new decision-loop design artifact:
+  - `QD_DECISION_LOOP_v0_2.md`
+- defined draft resolution criteria for collapse out of internal HOLD vs block conditions
+- defined explicit output-class criteria:
+  - resolved `-1`
+  - resolved `+1`
+  - conditional answer
+  - limited/caution answer
+  - external HOLD
+- clarified Delta Ingress role:
+  - change detection
+  - normalization
+  - prior-state comparison anchor
+  - weak/missing prior-state handling posture
+- clarified temporal asymmetry weighting:
+  - grounded past recall stronger than softer future projection
+- preserved non-goals:
+  - no runtime implementation
+  - no autonomous decision logic
+  - no coupling into evidence/consumer runtime surfaces
+
+#### Files changed
+- `QD_DECISION_LOOP_v0_2.md`
+- `BUILD_LEDGER.md`
+- `runs/qd_decision_loop_v0_2_resolution_criteria_transcript.txt`
+- `runs/qd_decision_loop_v0_2_resolution_criteria_delivery.txt`
+
+#### Tests run
+- none (spec-only step; no runtime/code-path changes)
+
+### Session date: 2026-04-06 (QD Decision Loop v0.1 - Geometry Clarification Revision)
+#### What we built
+- revised the existing `QD_DECISION_LOOP_v0_1.md` spec to correct HOLD semantics:
+  - internal HOLD = active zone/contact plane
+  - external HOLD = output node when resolution is not earned
+- clarified stage semantics:
+  - polarity split generates the internal HOLD zone
+  - assessment chamber is the active tension/synthesis zone
+  - past recall and future projection both run inside the active zone
+  - past recall and future projection are not epistemically symmetric
+- clarified loop flow:
+  - internal HOLD does not re-enter
+  - only external HOLD loops back on new delta/evidence
+- clarified Delta Ingress role:
+  - change detection + normalization + prior-state comparison anchor
+- preserved non-goals:
+  - no runtime implementation
+  - no autonomous decision logic
+  - no coupling into existing evidence/consumer surfaces
+
+#### Files changed
+- `QD_DECISION_LOOP_v0_1.md`
+- `BUILD_LEDGER.md`
+
+#### Tests run
+- none (spec-only revision; no runtime/code-path changes)
+
+### Session date: 2026-04-06 (QD Decision Loop v0.1 - Design Anchor / Spec Only)
+#### What we built
+- anchored `QD Decision Loop v0.1` as a repo-visible design specification:
+  - `Question -> Delta Split -> Polarity Evaluation -> Temporal Assessment -> Resolution`
+- stage definitions recorded:
+  - Question Node
+  - Delta Ingress
+  - Polarity Split
+  - Assessment Chamber
+  - Past Outcome Recall
+  - Future Outcome Projection
+  - Resolution Node
+- explicit output possibilities recorded:
+  - answer
+  - conditional answer
+  - limited/caution answer
+  - HOLD
+- relationship to current build recorded:
+  - durable ledger integrity audit as root-truth substrate check
+  - corrective learning v1.0a/v1.1/v1.2 as remembered wrongness structure
+  - decision loop as future behavioral control loop candidate
+- explicit non-goals recorded:
+  - not implemented behavior yet
+  - no runtime coupling yet
+  - no autonomous learning yet
+  - no confidence/posture rewrite yet
+
+#### Files changed
+- `QD_DECISION_LOOP_v0_1.md`
+- `BUILD_LEDGER.md`
+
+#### Tests run
+- none (spec-only step; no runtime/code-path changes)
+
+### Session date: 2026-04-06 (Corrective Learning v1.2 - Audit Finding to Corrective Record Mapping)
+#### What we built
+- added explicit read-only mapping helper:
+  - `map_durable_ledger_audit_findings_to_corrective_records_v1_2(...)`
+- mapping scope intentionally constrained to durable-ledger integrity audit findings only
+- deterministic mapping classes currently include:
+  - duplicate event_id ambiguity
+  - ledger ordering issue
+  - required field/schema issue
+  - lineage anchor mismatch/unusable
+- mapping composition anchored to existing corrective-learning surfaces:
+  - `build_corrective_learning_record_v1a(...)`
+  - `format_corrective_learning_record_v1a(...)`
+  - `validate_corrective_learning_record_v1a(...)`
+- truth note:
+  - no persistence added
+  - no automatic invocation added to audit surfaces
+  - no evidence/consumer behavior changes
+  - no autonomous/adaptive behavior added
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_corrective_learning_audit_mapping_v1_2.py`
+- `BUILD_LEDGER.md`
+- `runs/corrective_learning_v1_2_audit_mapping_transcript.txt`
+- `runs/corrective_learning_v1_2_audit_mapping_delivery.txt`
+
+#### Tests run
+- focused corrective-learning mapping/contract tests with `PYTHONPATH=src`: `16 passed, 1 warning`
+- adjacent root-truth tests with `PYTHONPATH=src`: `33 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `389 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
+### Session date: 2026-04-06 (Corrective Learning v1.1 - Example Record Builder / Formatter)
+#### What we built
+- added deterministic corrective-learning usage-path helpers:
+  - `build_corrective_learning_record_v1a(...)`
+  - `format_corrective_learning_record_v1a(...)`
+- builder behavior:
+  - explicit input-only construction
+  - enforced v1.0a contract compatibility via `validate_corrective_learning_record_v1a(...)`
+  - fail-closed `ValueError` on invalid shape/type input
+- formatter behavior:
+  - deterministic export/report shape
+  - explicit field order from contract-required field list
+  - read-only guardrail flags remain false
+- truth note:
+  - no persistence added
+  - no autonomous/adaptive behavior added
+  - no coupling added into top consumer/evidence surfaces
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_corrective_learning_builder_formatter_v1_1.py`
+- `BUILD_LEDGER.md`
+- `runs/corrective_learning_v1_1_builder_formatter_transcript.txt`
+- `runs/corrective_learning_v1_1_builder_formatter_delivery.txt`
+
+#### Tests run
+- focused corrective-learning builder/contract tests with `PYTHONPATH=src`: `11 passed, 1 warning`
+- adjacent root-truth tests with `PYTHONPATH=src`: `28 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `384 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
+### Session date: 2026-04-06 (Corrective Learning v1.0a - Contract / Schema Only)
+#### What we built
+- implemented minimal contract-only corrective-learning schema surfaces:
+  - `CorrectiveLearningRecordV1a`
+  - `get_corrective_learning_record_contract_v1a()`
+  - `validate_corrective_learning_record_v1a(...)`
+- truth note:
+  - no autonomous learning behavior added
+  - no adaptive behavior added
+  - no coupling added into top consumer/evidence surfaces
+  - no mutation/backfill/history rewrite behavior added
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_corrective_learning_contract_v1a.py`
+- `BUILD_LEDGER.md`
+- `runs/corrective_learning_v1_0a_contract_schema_transcript.txt`
+- `runs/corrective_learning_v1_0a_contract_schema_delivery.txt`
+
+#### Tests run
+- focused corrective-learning contract tests with `PYTHONPATH=src`: `6 passed, 1 warning`
+- adjacent root-truth tests with `PYTHONPATH=src`: `23 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `379 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
+### Session date: 2026-04-06 (Durable Transition Ledger Integrity Audit v1.0)
+#### What we built
+- implemented and validated `get_durable_transition_ledger_integrity_audit()` as a read-only foundational durable-ledger integrity audit surface
+- audit scope enforces:
+  - durable ledger readability/shape checks
+  - per-event minimal transition schema conformance for downstream relied fields
+  - duplicate `event_id` and ambiguity detection
+  - ledger ordering integrity checks
+  - lineage anchor consistency checks via:
+    - `run_lineage_integrity_audit(...)`
+    - `get_lineage_integrity_report(...)`
+- truth note:
+  - no bounded stack continuation was built
+  - no upper consumer predicate behavior was changed
+
+#### Files changed
+- `src/qd_perception/neutral_family_memory_v1.py`
+- `tests/test_durable_transition_ledger_integrity_audit.py`
+- `BUILD_LEDGER.md`
+- `runs/durable_transition_ledger_integrity_audit_v1_0_transcript.txt`
+- `runs/durable_transition_ledger_integrity_audit_v1_0_delivery.txt`
+
+#### Tests run
+- focused durable-ledger audit tests with `PYTHONPATH=src`: `5 passed, 1 warning`
+- adjacent durable-ledger/lineage tests with `PYTHONPATH=src`: `17 passed, 1 warning`
+- full pytest with `PYTHONPATH=src`: `373 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
+### Session date: 2026-04-06 (Bounded Consumer-Gate Cross-Window Parity Hardening)
+#### What we built
+- test hardening only; no production/API layer changes
+- added explicit cross-window equivalence tests in `tests/test_system_evidence_review_sampler_consumer_gate.py`:
+  - `test_cross_window_equivalence_ready_locked_yields_rely`
+  - `test_cross_window_equivalence_partial_locked_yields_limited`
+  - `test_cross_window_equivalence_inconsistent_stage_lock_yields_hold`
+- truth note:
+  - production inspection found no real bug in bounded consumer-gate runtime logic
+  - both bounded consumer-gate modes already share one helper and one decision-branch set
+  - parity hardening closed the currently observed cross-window parity gap; no new API was earned this session
+
+#### Files changed
+- `tests/test_system_evidence_review_sampler_consumer_gate.py`
+- `BUILD_LEDGER.md`
+
+#### Tests run
+- focused bounded consumer-gate tests with `PYTHONPATH=src`: `11 passed, 1 warning`
+- adjacent bounded sampler/stage-lock/gate tests with `PYTHONPATH=src`: `30 passed, 1 warning`
+
+#### Warnings
+- pytest cache permission warning
+- temp symlink cleanup PermissionError warning (non-blocking)
+
 ### Session date: 2026-04-05 (Bounded System Evidence Review Consumer Gate v1.2)
 #### What we built
 - implemented bounded sampler consumer-gate surfaces:
@@ -488,30 +979,41 @@ Bounded sampler consumer gate posture now exists for both index and event-order 
 - `get_system_evidence_review_sampler_stage_lock_event_order_window(...)`
 - `get_system_evidence_review_sampler_consumer_gate_window(...)`
 - `get_system_evidence_review_sampler_consumer_gate_event_order_window(...)`
+- `get_durable_transition_ledger_integrity_audit()`
+- `CorrectiveLearningRecordV1a`
+- `get_corrective_learning_record_contract_v1a()`
+- `validate_corrective_learning_record_v1a(...)`
+- `build_corrective_learning_record_v1a(...)`
+- `format_corrective_learning_record_v1a(...)`
+- `map_durable_ledger_audit_findings_to_corrective_records_v1_2(...)`
+- `ManualTraceInputV0`
+- `resolve_manual_decision_trace_v0_0(...)`
+- `manual_trace_input_to_dict(...)`
 
 ---
 
 ## Next Step
 ### Immediate next step
-Bounded System Evidence Review Consumer Gate Consistency / Stage Lock v1.3
+Hold integration expansion; pressure-test the isolated decision-loop prototype with additional manual traces only.
 
 ### Why this is the next honest step
-Bounded consumer gate posture now exists, so it needs a dedicated read-only consistency/stage-lock audit to prevent hidden dependency creep and posture drift over time.
+The prototype is now executable and deterministic, but still intentionally isolated. The honest next move is manual-case hardening, not runtime coupling or persistence.
 
 ### What it must use
-- `get_system_evidence_review_sampler_consumer_gate_window(...)`
-- `get_system_evidence_review_sampler_consumer_gate_event_order_window(...)`
-- matching bounded sampler and bounded sampler stage-lock surfaces as contract anchors only
+- If HOLD is lifted:
+  - `ManualTraceInputV0`
+  - `resolve_manual_decision_trace_v0_0(...)`
+  - explicit manual trace catalogs
+  - explicit contract callout before any integration or persistence
 
 ### What it must NOT do
 - invent new truth predicates
-- reopen lower evidence or observability semantics
-- add hidden direct lower-band dependencies outside established composition surfaces
-- no lower-band bucket meaning changes
-- no window semantic changes
-- no comparator delta-direction reinterpretation
-- no hidden cross-band/system-gate predicates
-- imply bounded outputs are full-range equivalent
+- reopen locked lower semantics
+- add hidden direct dependencies into existing system/cross-band/observability review outputs
+- reinterpret bounded or full-range evidence contracts
+- add autonomous/adaptive learning behavior
+- add persistence/write-path behavior
+- auto-invoke from durable-ledger/corrective/evidence surfaces
 - mutate lineage, create events, or rewrite history
 
 ---
@@ -533,7 +1035,7 @@ Bounded consumer gate posture now exists, so it needs a dedicated read-only cons
 - `ec6c62711430e015e64280be40eb7e5376a6e520` - Record system-wide evidence review v1.1a revalidation
 
 ### Commit to make next
-**Suggested commit message:** Add bounded system evidence review consumer gate v1.2
+**Suggested commit message:** Add decision loop prototype v0.0a edge-case pressure tests and ledger update
 
 ### Files that should be committed
 - `src/`
@@ -566,7 +1068,7 @@ Read these sections first:
 5. Next Step
 
 Current verified suite count:
-- Full suite: 365 passed, 1 warning
+- Full suite: 404 passed, 1 warning
 
 Current frozen top surface:
 - get_unified_system_consumer_posture_summary()
@@ -584,7 +1086,11 @@ Current observability evidence-review audit surface:
 - get_observability_evidence_review_stage_lock_audit()
 
 Immediate next target:
-- Bounded System Evidence Review Consumer Gate Consistency / Stage Lock v1.3
+- HOLD: Keep decision-loop prototype isolated/manual-input only; pressure-test traces before any integration request
+
+First action next session:
+- read BUILD_LEDGER.md first
+- run focused prototype pressure tests before considering any integration change
 
 Do not reopen locked lower semantics.
 Do not invent new predicates.
@@ -595,6 +1101,23 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ## End-of-Day Snapshot
 ### Built today
+- Added Decision Loop Prototype v0.0a edge-case pressure tests
+- Corrected two prototype-only spec-consistency issues exposed by pressure tests
+- Verified full suite on updated prototype v0.0a baseline
+- Implemented QD Decision Loop Prototype v0.0 manual trace resolver in isolated module
+- Added focused prototype tests and verified full-suite baseline after prototype addition
+- Implemented Corrective Learning v1.2 audit-finding to corrective-record mapping
+- Added focused corrective-learning audit-mapping tests
+- Verified full suite on updated corrective-learning v1.2 frontier
+- Implemented Corrective Learning v1.1 builder/formatter usage path
+- Added focused corrective-learning builder/formatter tests
+- Verified full suite on updated corrective-learning v1.1 frontier
+- Implemented Corrective Learning v1.0a contract/schema surfaces
+- Added focused corrective-learning contract tests
+- Verified full suite on updated corrective-learning contract frontier
+- Implemented Durable Transition Ledger Integrity Audit v1.0
+- Added focused durable-ledger integrity audit tests
+- Verified full suite on updated durable-ledger integrity frontier
 - Implemented Bounded System Evidence Review Consistency / Stage Lock v1.1 (index + event-order)
 - Added focused bounded system sampler stage-lock tests
 - Verified full suite on updated bounded sampler stage-lock frontier
@@ -617,6 +1140,8 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - Verified full suite on the updated frontier
 
 ### Verified today
+- decision-loop prototype surface `resolve_manual_decision_trace_v0_0(...)` is present in `decision_loop_prototype_v0_0.py`
+- focused prototype edge-case suite reported green at 15 passed, 1 warning
 - unified posture stage-lock audit surface is present in `neutral_family_memory_v1.py`
 - unified summary delivery surface is present in `neutral_family_memory_v1.py`
 - observability evidence-review surface is present in `neutral_family_memory_v1.py`
@@ -626,7 +1151,11 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - bounded system evidence-review sampler surfaces are present in `neutral_family_memory_v1.py`
 - bounded system evidence-review sampler stage-lock surfaces are present in `neutral_family_memory_v1.py`
 - bounded system evidence-review sampler consumer-gate surfaces are present in `neutral_family_memory_v1.py`
-- final full suite reported green at 365 passed, 1 warning
+- durable transition-ledger integrity audit surface is present in `neutral_family_memory_v1.py`
+- corrective-learning contract/schema surfaces are present in `neutral_family_memory_v1.py`
+- corrective-learning builder/formatter surfaces are present in `neutral_family_memory_v1.py`
+- corrective-learning audit-mapping surface is present in `neutral_family_memory_v1.py`
+- final full suite reported green at 404 passed, 1 warning
 - focused system-evidence revalidation suite reported green at 28 passed, 1 warning
 - top unified posture stage lock present and validated
 - repo initialized and first local checkpoint commit created
@@ -638,7 +1167,7 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 
 ### First action next session
 - read BUILD_LEDGER.md first
-- inspect/build Bounded System Evidence Review Consumer Gate Consistency / Stage Lock v1.3
+- hold prototype integration/autonomy/persistence expansion; pressure-test manual traces only unless explicit coupling contract is requested
 - update ledger again before stopping
 
 ### Pressure items / risks
@@ -646,6 +1175,10 @@ Preserve read-only guardrails and fail closed when evidence is insufficient.
 - repo drift if Git is not initialized soon
 - artifact clutter if `runs/` is committed indiscriminately
 - avoid accidental bounded-to-full-range equivalence claims in any new bounded system sampler output
+- avoid hidden predicate coupling from durable-ledger audit into existing upper evidence surfaces
+- avoid implicit behavior creep from corrective-learning contract into autonomous/adaptive logic
+- avoid implicit auto-invocation coupling of audit-to-correction mapping without explicit contract
+- avoid accidental coupling of decision-loop prototype into existing evidence/consumer runtime surfaces without explicit contract
 
 ---
 

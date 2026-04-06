@@ -271,3 +271,111 @@ def test_guardrail_flags_remain_false(
     assert out["lineage_mutation_performed"] is False
     assert out["event_creation_performed"] is False
     assert out["history_rewrite_performed"] is False
+
+
+def test_cross_window_equivalence_ready_locked_yields_rely(tmp_path):
+    mem = _mem(tmp_path)
+    mem.get_system_evidence_review_sampler_window = MagicMock(
+        return_value=_sampler_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_WINDOW",
+            state="SYSTEM_EVIDENCE_REVIEW_READY",
+        )
+    )
+    mem.get_system_evidence_review_sampler_event_order_window = MagicMock(
+        return_value=_sampler_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            state="SYSTEM_EVIDENCE_REVIEW_READY",
+        )
+    )
+    mem.get_system_evidence_review_sampler_stage_lock_window = MagicMock(
+        return_value=_stage_lock_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_WINDOW",
+            lock_state="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_LOCKED",
+        )
+    )
+    mem.get_system_evidence_review_sampler_stage_lock_event_order_window = MagicMock(
+        return_value=_stage_lock_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_EVENT_ORDER_WINDOW",
+            lock_state="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_LOCKED",
+        )
+    )
+
+    out_index = mem.get_system_evidence_review_sampler_consumer_gate_window()
+    out_event_order = mem.get_system_evidence_review_sampler_consumer_gate_event_order_window()
+
+    assert out_index["consumer_posture"] == out_event_order["consumer_posture"]
+    assert out_index["consumer_posture"] == "RELY"
+    assert out_index["gate_state"] == "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_RELY"
+    assert out_event_order["gate_state"] == "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_RELY"
+
+
+def test_cross_window_equivalence_partial_locked_yields_limited(tmp_path):
+    mem = _mem(tmp_path)
+    mem.get_system_evidence_review_sampler_window = MagicMock(
+        return_value=_sampler_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_WINDOW",
+            state="SYSTEM_EVIDENCE_REVIEW_PARTIAL",
+        )
+    )
+    mem.get_system_evidence_review_sampler_event_order_window = MagicMock(
+        return_value=_sampler_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            state="SYSTEM_EVIDENCE_REVIEW_PARTIAL",
+        )
+    )
+    mem.get_system_evidence_review_sampler_stage_lock_window = MagicMock(
+        return_value=_stage_lock_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_WINDOW",
+            lock_state="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_LOCKED",
+        )
+    )
+    mem.get_system_evidence_review_sampler_stage_lock_event_order_window = MagicMock(
+        return_value=_stage_lock_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_EVENT_ORDER_WINDOW",
+            lock_state="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_LOCKED",
+        )
+    )
+
+    out_index = mem.get_system_evidence_review_sampler_consumer_gate_window()
+    out_event_order = mem.get_system_evidence_review_sampler_consumer_gate_event_order_window()
+
+    assert out_index["consumer_posture"] == out_event_order["consumer_posture"]
+    assert out_index["consumer_posture"] == "LIMITED"
+    assert out_index["gate_state"] == "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_LIMITED"
+    assert out_event_order["gate_state"] == "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_LIMITED"
+
+
+def test_cross_window_equivalence_inconsistent_stage_lock_yields_hold(tmp_path):
+    mem = _mem(tmp_path)
+    mem.get_system_evidence_review_sampler_window = MagicMock(
+        return_value=_sampler_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_WINDOW",
+            state="SYSTEM_EVIDENCE_REVIEW_READY",
+        )
+    )
+    mem.get_system_evidence_review_sampler_event_order_window = MagicMock(
+        return_value=_sampler_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_EVENT_ORDER_WINDOW",
+            state="SYSTEM_EVIDENCE_REVIEW_READY",
+        )
+    )
+    mem.get_system_evidence_review_sampler_stage_lock_window = MagicMock(
+        return_value=_stage_lock_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_WINDOW",
+            lock_state="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_INCONSISTENT",
+        )
+    )
+    mem.get_system_evidence_review_sampler_stage_lock_event_order_window = MagicMock(
+        return_value=_stage_lock_surface(
+            mode="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_EVENT_ORDER_WINDOW",
+            lock_state="SYSTEM_EVIDENCE_REVIEW_SAMPLER_STAGE_LOCK_INCONSISTENT",
+        )
+    )
+
+    out_index = mem.get_system_evidence_review_sampler_consumer_gate_window()
+    out_event_order = mem.get_system_evidence_review_sampler_consumer_gate_event_order_window()
+
+    assert out_index["consumer_posture"] == out_event_order["consumer_posture"]
+    assert out_index["consumer_posture"] == "HOLD"
+    assert out_index["gate_state"] == "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"
+    assert out_event_order["gate_state"] == "SYSTEM_EVIDENCE_REVIEW_SAMPLER_GATE_HOLD"

@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from typing import Optional, List, Tuple
+from dataclasses import dataclass, field, asdict
+from typing import Optional, List, Tuple, Any
 from datetime import datetime, timezone
 import json
 import os
@@ -92,6 +92,540 @@ class NeutralFamilyRecordV1:
     @property
     def combined_spread(self) -> dict[str, float]:
         return self.current_spread
+
+
+@dataclass(frozen=True)
+class CorrectiveLearningRecordV1a:
+    """
+    Corrective Learning v1.0a contract-only record.
+    This is schema memory for wrongness/correction provenance, not behavior.
+    """
+    correction_id: str
+    wrongness_class: str
+    wrongness_surface: str
+    detection_source: str
+    affected_entity_ids: List[str]
+    prior_state: dict[str, Any]
+    corrected_state: dict[str, Any]
+    reason_before: str
+    reason_after: str
+    evidence_delta: dict[str, Any]
+    root_cause_class: str
+    future_guardrail: str
+    hold_recommended_next_time: bool
+    notes: str
+
+
+def get_corrective_learning_record_contract_v1a() -> dict:
+    """
+    Returns the explicit contract surface for corrective-learning record v1.0a.
+    """
+    return {
+        "contract_available": True,
+        "contract_mode": "CORRECTIVE_LEARNING_RECORD_CONTRACT_V1A",
+        "required_fields": [
+            "correction_id",
+            "wrongness_class",
+            "wrongness_surface",
+            "detection_source",
+            "affected_entity_ids",
+            "prior_state",
+            "corrected_state",
+            "reason_before",
+            "reason_after",
+            "evidence_delta",
+            "root_cause_class",
+            "future_guardrail",
+            "hold_recommended_next_time",
+            "notes",
+        ],
+        "field_types": {
+            "correction_id": "str(non-empty)",
+            "wrongness_class": "str(non-empty)",
+            "wrongness_surface": "str(non-empty)",
+            "detection_source": "str(non-empty)",
+            "affected_entity_ids": "list[str(non-empty)]",
+            "prior_state": "dict",
+            "corrected_state": "dict",
+            "reason_before": "str(non-empty)",
+            "reason_after": "str(non-empty)",
+            "evidence_delta": "dict",
+            "root_cause_class": "str(non-empty)",
+            "future_guardrail": "str(non-empty)",
+            "hold_recommended_next_time": "bool",
+            "notes": "str",
+        },
+        "contract_only": True,
+        "lineage_mutation_performed": False,
+        "event_creation_performed": False,
+        "history_rewrite_performed": False,
+    }
+
+
+def validate_corrective_learning_record_v1a(record: dict | CorrectiveLearningRecordV1a) -> dict:
+    """
+    Read-only schema validation for corrective-learning v1.0a records.
+    """
+    contract = get_corrective_learning_record_contract_v1a()
+    required_fields = list(contract["required_fields"])
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    if isinstance(record, CorrectiveLearningRecordV1a):
+        candidate = asdict(record)
+    elif isinstance(record, dict):
+        candidate = dict(record)
+    else:
+        return {
+            "validation_available": True,
+            "validation_mode": "CORRECTIVE_LEARNING_RECORD_VALIDATION_V1A",
+            "valid": False,
+            "reason": "RECORD_NOT_DICT",
+            "errors": ["Record must be dict or CorrectiveLearningRecordV1a."],
+            "warnings": [],
+            "required_fields": required_fields,
+            "normalized_record": None,
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    missing = sorted([field for field in required_fields if field not in candidate])
+    if missing:
+        errors.append("Missing required fields: " + ", ".join(missing))
+
+    extra = sorted([key for key in candidate.keys() if key not in required_fields])
+    if extra:
+        errors.append("Unexpected fields present: " + ", ".join(extra))
+
+    def _is_non_empty_str(value) -> bool:
+        return isinstance(value, str) and bool(value.strip())
+
+    for field in [
+        "correction_id",
+        "wrongness_class",
+        "wrongness_surface",
+        "detection_source",
+        "reason_before",
+        "reason_after",
+        "root_cause_class",
+        "future_guardrail",
+    ]:
+        value = candidate.get(field)
+        if field in candidate and not _is_non_empty_str(value):
+            errors.append(f"{field} must be a non-empty string.")
+
+    if "notes" in candidate and not isinstance(candidate.get("notes"), str):
+        errors.append("notes must be a string.")
+
+    if "affected_entity_ids" in candidate:
+        affected = candidate.get("affected_entity_ids")
+        if not isinstance(affected, list):
+            errors.append("affected_entity_ids must be a list.")
+        elif any((not isinstance(x, str)) or (not x.strip()) for x in affected):
+            errors.append("affected_entity_ids elements must be non-empty strings.")
+        elif len(affected) == 0:
+            warnings.append("affected_entity_ids is empty.")
+
+    for field in ["prior_state", "corrected_state", "evidence_delta"]:
+        if field in candidate and not isinstance(candidate.get(field), dict):
+            errors.append(f"{field} must be a dict.")
+
+    if "hold_recommended_next_time" in candidate and not isinstance(
+        candidate.get("hold_recommended_next_time"), bool
+    ):
+        errors.append("hold_recommended_next_time must be bool.")
+
+    valid = len(errors) == 0
+    return {
+        "validation_available": True,
+        "validation_mode": "CORRECTIVE_LEARNING_RECORD_VALIDATION_V1A",
+        "valid": valid,
+        "reason": "CORRECTIVE_LEARNING_RECORD_VALID"
+        if valid
+        else "CORRECTIVE_LEARNING_RECORD_INVALID",
+        "errors": errors,
+        "warnings": warnings,
+        "required_fields": required_fields,
+        "normalized_record": candidate if valid else None,
+        "lineage_mutation_performed": False,
+        "event_creation_performed": False,
+        "history_rewrite_performed": False,
+    }
+
+
+def build_corrective_learning_record_v1a(
+    *,
+    correction_id: str,
+    wrongness_class: str,
+    wrongness_surface: str,
+    detection_source: str,
+    affected_entity_ids: List[str],
+    prior_state: dict[str, Any],
+    corrected_state: dict[str, Any],
+    reason_before: str,
+    reason_after: str,
+    evidence_delta: dict[str, Any],
+    root_cause_class: str,
+    future_guardrail: str,
+    hold_recommended_next_time: bool,
+    notes: str,
+) -> CorrectiveLearningRecordV1a:
+    """
+    Deterministic builder for valid CorrectiveLearningRecordV1a instances.
+    Raises ValueError if input does not satisfy v1.0a contract.
+    """
+    candidate = {
+        "correction_id": correction_id,
+        "wrongness_class": wrongness_class,
+        "wrongness_surface": wrongness_surface,
+        "detection_source": detection_source,
+        "affected_entity_ids": affected_entity_ids,
+        "prior_state": prior_state,
+        "corrected_state": corrected_state,
+        "reason_before": reason_before,
+        "reason_after": reason_after,
+        "evidence_delta": evidence_delta,
+        "root_cause_class": root_cause_class,
+        "future_guardrail": future_guardrail,
+        "hold_recommended_next_time": hold_recommended_next_time,
+        "notes": notes,
+    }
+    validation = validate_corrective_learning_record_v1a(candidate)
+    if not validation.get("valid", False):
+        errors = validation.get("errors", [])
+        raise ValueError(
+            "CorrectiveLearningRecordV1a build refused: "
+            + ("; ".join(errors) if errors else "contract validation failed.")
+        )
+    normalized = validation["normalized_record"]
+    return CorrectiveLearningRecordV1a(
+        correction_id=normalized["correction_id"],
+        wrongness_class=normalized["wrongness_class"],
+        wrongness_surface=normalized["wrongness_surface"],
+        detection_source=normalized["detection_source"],
+        affected_entity_ids=list(normalized["affected_entity_ids"]),
+        prior_state=dict(normalized["prior_state"]),
+        corrected_state=dict(normalized["corrected_state"]),
+        reason_before=normalized["reason_before"],
+        reason_after=normalized["reason_after"],
+        evidence_delta=dict(normalized["evidence_delta"]),
+        root_cause_class=normalized["root_cause_class"],
+        future_guardrail=normalized["future_guardrail"],
+        hold_recommended_next_time=normalized["hold_recommended_next_time"],
+        notes=normalized["notes"],
+    )
+
+
+def format_corrective_learning_record_v1a(
+    record: dict | CorrectiveLearningRecordV1a,
+) -> dict:
+    """
+    Deterministic export/report formatter for corrective-learning v1.0a records.
+    """
+    contract = get_corrective_learning_record_contract_v1a()
+    required_fields = list(contract["required_fields"])
+    validation = validate_corrective_learning_record_v1a(record)
+    valid = bool(validation.get("valid", False))
+    normalized = validation.get("normalized_record")
+    ordered_record = (
+        {field: normalized.get(field) for field in required_fields}
+        if valid and isinstance(normalized, dict)
+        else None
+    )
+    return {
+        "report_available": valid,
+        "report_mode": "CORRECTIVE_LEARNING_RECORD_REPORT_V1A",
+        "report_reason": "CORRECTIVE_LEARNING_RECORD_FORMATTED"
+        if valid
+        else "CORRECTIVE_LEARNING_RECORD_INVALID",
+        "record_valid": valid,
+        "record": ordered_record,
+        "field_order": required_fields,
+        "errors": list(validation.get("errors", [])),
+        "warnings": list(validation.get("warnings", [])),
+        "lineage_mutation_performed": False,
+        "event_creation_performed": False,
+        "history_rewrite_performed": False,
+    }
+
+
+def map_durable_ledger_audit_findings_to_corrective_records_v1_2(audit_report: dict) -> dict:
+    """
+    Corrective Learning v1.2:
+    Read-only explicit mapping from durable-ledger audit findings to
+    corrective-learning v1.0a records.
+    """
+    mode = "DURABLE_LEDGER_AUDIT_TO_CORRECTIVE_RECORDS_V1_2"
+    if not isinstance(audit_report, dict):
+        return {
+            "mapping_available": False,
+            "mapping_mode": mode,
+            "mapping_reason": "AUDIT_REPORT_INVALID",
+            "source_audit_mode": None,
+            "source_audit_state": None,
+            "source_audit_reason": None,
+            "mapped_issue_classes": [],
+            "corrective_records": [],
+            "formatted_records": [],
+            "record_count": 0,
+            "warnings": ["AUDIT_REPORT_INVALID"],
+            "errors": ["Audit report must be a dict."],
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    if audit_report.get("audit_mode") != "DURABLE_TRANSITION_LEDGER_INTEGRITY":
+        return {
+            "mapping_available": False,
+            "mapping_mode": mode,
+            "mapping_reason": "UNSUPPORTED_AUDIT_MODE",
+            "source_audit_mode": audit_report.get("audit_mode"),
+            "source_audit_state": audit_report.get("audit_state"),
+            "source_audit_reason": audit_report.get("audit_reason"),
+            "mapped_issue_classes": [],
+            "corrective_records": [],
+            "formatted_records": [],
+            "record_count": 0,
+            "warnings": ["UNSUPPORTED_AUDIT_MODE"],
+            "errors": ["Expected audit_mode=DURABLE_TRANSITION_LEDGER_INTEGRITY."],
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
+
+    warnings = set(str(x) for x in audit_report.get("warnings", []))
+    check_results = [
+        x for x in audit_report.get("check_results", []) if isinstance(x, dict)
+    ]
+    checks_by_name = {
+        str(x.get("check_name", "")): x for x in check_results if x.get("check_name")
+    }
+    per_record_issues = [
+        x for x in audit_report.get("per_record_issues", []) if isinstance(x, dict)
+    ]
+    counts = (
+        dict(audit_report.get("integrity_counts", {}))
+        if isinstance(audit_report.get("integrity_counts"), dict)
+        else {}
+    )
+    source_state = audit_report.get("audit_state")
+    source_reason = audit_report.get("audit_reason")
+
+    def _event_ids_for_issue_type(issue_types: set[str]) -> list[str]:
+        out: list[str] = []
+        for issue in per_record_issues:
+            if str(issue.get("issue_type", "")) in issue_types:
+                evt_id = issue.get("event_id")
+                if isinstance(evt_id, str) and evt_id:
+                    out.append(evt_id)
+        return sorted(set(out))
+
+    specs: list[dict] = []
+    duplicate_check = checks_by_name.get("EVENT_ID_LOOKUP_UNAMBIGUOUS", {})
+    if (
+        "DUPLICATE_EVENT_ID_DETECTED" in warnings
+        or duplicate_check.get("reason") == "AMBIGUOUS_EVENT_ID_LOOKUPS_DETECTED"
+    ):
+        duplicate_ids = []
+        details = duplicate_check.get("details", {})
+        if isinstance(details, dict):
+            duplicate_ids = sorted(
+                set(
+                    [
+                        str(x)
+                        for x in details.get("ambiguous_lookup_event_ids", [])
+                        if isinstance(x, str) and x
+                    ]
+                    + [
+                        str(x)
+                        for x in details.get("duplicate_event_ids", [])
+                        if isinstance(x, str) and x
+                    ]
+                )
+            )
+        specs.append(
+            {
+                "issue_key": "DUPLICATE_EVENT_ID_AMBIGUITY",
+                "wrongness_class": "LEDGER_EVENT_ID_AMBIGUITY",
+                "root_cause_class": "DUPLICATE_EVENT_ID",
+                "reason_after": "EVENT_ID_LOOKUPS_UNAMBIGUOUS",
+                "future_guardrail": "REQUIRE_EVENT_ID_UNIQUENESS_PRECHECK",
+                "affected_entity_ids": duplicate_ids or ["LEDGER_EVENT_SCOPE"],
+                "evidence_delta": {
+                    "duplicate_event_id_count": counts.get("duplicate_event_id_count", 0),
+                    "ambiguous_lookup_event_id_count": counts.get(
+                        "ambiguous_lookup_event_id_count", 0
+                    ),
+                },
+                "detection_source": "DUPLICATE_EVENT_ID_DETECTED",
+                "notes": "Mapped from durable-ledger event_id ambiguity findings.",
+            }
+        )
+
+    ordering_check = checks_by_name.get("LEDGER_WRITE_ORDER_STRICT_INCREASING", {})
+    if (
+        "LEDGER_ORDERING_ISSUES_DETECTED" in warnings
+        or ordering_check.get("reason") == "ORDERING_ISSUES_DETECTED"
+    ):
+        specs.append(
+            {
+                "issue_key": "LEDGER_ORDERING_ISSUE",
+                "wrongness_class": "LEDGER_ORDERING_INTEGRITY_DRIFT",
+                "root_cause_class": "ORDERING_INCONSISTENCY",
+                "reason_after": "ORDERING_OK",
+                "future_guardrail": "REQUIRE_STRICT_LEDGER_WRITE_ORDER_MONOTONICITY",
+                "affected_entity_ids": _event_ids_for_issue_type(
+                    {"LEDGER_WRITE_ORDER_NOT_STRICTLY_INCREASING"}
+                )
+                or ["LEDGER_ORDERING_SCOPE"],
+                "evidence_delta": {
+                    "ordering_issue_count": counts.get("ordering_issue_count", 0),
+                },
+                "detection_source": "LEDGER_ORDERING_ISSUES_DETECTED",
+                "notes": "Mapped from durable-ledger write-order integrity findings.",
+            }
+        )
+
+    schema_check = checks_by_name.get("REQUIRED_TRANSITION_FIELDS_VALID", {})
+    shape_check = checks_by_name.get("LEDGER_RECORDS_DICT_SHAPED", {})
+    if (
+        "LEDGER_SCHEMA_ISSUES_DETECTED" in warnings
+        or "LEDGER_RECORD_SHAPE_ISSUES_DETECTED" in warnings
+        or schema_check.get("reason") == "REQUIRED_FIELD_OR_TYPE_ISSUES_DETECTED"
+        or shape_check.get("reason") == "NON_DICT_RECORDS_DETECTED"
+    ):
+        schema_issue_types = {
+            "LEDGER_RECORD_NOT_DICT",
+            "MISSING_OR_INVALID_EVENT_ID",
+            "MISSING_OR_INVALID_EVENT_TYPE",
+            "MISSING_OR_INVALID_SOURCE_FAMILY_IDS",
+            "SOURCE_FAMILY_IDS_ELEMENT_TYPE_INVALID",
+            "MISSING_OR_INVALID_SUCCESSOR_FAMILY_IDS",
+            "SUCCESSOR_FAMILY_IDS_ELEMENT_TYPE_INVALID",
+            "MISSING_OR_INVALID_EVENT_ORDER",
+            "MISSING_OR_INVALID_LEDGER_WRITE_ORDER",
+            "LEDGER_TIMESTAMP_TYPE_INVALID",
+        }
+        specs.append(
+            {
+                "issue_key": "LEDGER_SCHEMA_ISSUE",
+                "wrongness_class": "LEDGER_SCHEMA_CONFORMANCE_ISSUE",
+                "root_cause_class": "REQUIRED_FIELD_OR_TYPE_DRIFT",
+                "reason_after": "REQUIRED_FIELDS_OK",
+                "future_guardrail": "REQUIRE_TRANSITION_SCHEMA_CONFORMANCE_PRECHECK",
+                "affected_entity_ids": _event_ids_for_issue_type(schema_issue_types)
+                or ["LEDGER_SCHEMA_SCOPE"],
+                "evidence_delta": {
+                    "required_field_issue_count": counts.get(
+                        "required_field_issue_count", 0
+                    ),
+                    "type_issue_count": counts.get("type_issue_count", 0),
+                    "non_dict_record_count": counts.get("non_dict_record_count", 0),
+                },
+                "detection_source": "LEDGER_SCHEMA_OR_SHAPE_ISSUES_DETECTED",
+                "notes": "Mapped from durable-ledger schema/shape conformance findings.",
+            }
+        )
+
+    lineage_check = checks_by_name.get("LINEAGE_ANCHOR_SURFACES_CONSISTENT", {})
+    if (
+        "LINEAGE_ANCHOR_SURFACE_MISMATCH" in warnings
+        or "LINEAGE_AUDIT_SURFACE_UNUSABLE" in warnings
+        or "LINEAGE_REPORT_SURFACE_UNUSABLE" in warnings
+        or lineage_check.get("reason") == "LINEAGE_ANCHORS_MISMATCH_OR_UNUSABLE"
+    ):
+        lineage_details = (
+            lineage_check.get("details", {})
+            if isinstance(lineage_check.get("details", {}), dict)
+            else {}
+        )
+        specs.append(
+            {
+                "issue_key": "LINEAGE_ANCHOR_MISMATCH",
+                "wrongness_class": "LINEAGE_ANCHOR_CONSISTENCY_ISSUE",
+                "root_cause_class": "LINEAGE_ANCHOR_MISMATCH_OR_UNUSABLE",
+                "reason_after": "LINEAGE_ANCHORS_MATCH",
+                "future_guardrail": "REQUIRE_LINEAGE_ANCHOR_SURFACE_PARITY",
+                "affected_entity_ids": ["LINEAGE_ANCHOR_SURFACE"],
+                "evidence_delta": {
+                    "lineage_issue_count": counts.get("lineage_issue_count", 0),
+                    "lineage_audit_usable": lineage_details.get("lineage_audit_usable"),
+                    "lineage_report_usable": lineage_details.get("lineage_report_usable"),
+                },
+                "detection_source": "LINEAGE_ANCHOR_SURFACE_MISMATCH_OR_UNUSABLE",
+                "notes": "Mapped from durable-ledger lineage-anchor consistency findings.",
+            }
+        )
+
+    corrective_records: list[dict] = []
+    formatted_records: list[dict] = []
+    mapped_issue_classes: list[str] = []
+    mapping_errors: list[str] = []
+
+    for idx, spec in enumerate(specs, start=1):
+        mapped_issue_classes.append(spec["issue_key"])
+        correction_id = f"corr_durable_{spec['issue_key'].lower()}_{idx:02d}"
+        try:
+            record = build_corrective_learning_record_v1a(
+                correction_id=correction_id,
+                wrongness_class=spec["wrongness_class"],
+                wrongness_surface="get_durable_transition_ledger_integrity_audit",
+                detection_source=spec["detection_source"],
+                affected_entity_ids=list(spec["affected_entity_ids"]),
+                prior_state={
+                    "audit_mode": "DURABLE_TRANSITION_LEDGER_INTEGRITY",
+                    "audit_state": source_state,
+                    "audit_reason": source_reason,
+                },
+                corrected_state={
+                    "target_audit_state": "DURABLE_TRANSITION_LEDGER_AUDIT_READY",
+                    "target_audit_reason": "ALL_LEDGER_INTEGRITY_CHECKS_PASSED",
+                    "target_condition": spec["reason_after"],
+                },
+                reason_before=str(source_reason or "AUDIT_FINDING_PRESENT"),
+                reason_after=spec["reason_after"],
+                evidence_delta=dict(spec["evidence_delta"]),
+                root_cause_class=spec["root_cause_class"],
+                future_guardrail=spec["future_guardrail"],
+                hold_recommended_next_time=True,
+                notes=spec["notes"],
+            )
+        except Exception as exc:
+            mapping_errors.append(
+                f"{spec['issue_key']} mapping failed with {type(exc).__name__}."
+            )
+            continue
+        formatted = format_corrective_learning_record_v1a(record)
+        corrective_records.append(formatted.get("record"))
+        formatted_records.append(formatted)
+
+    mapping_available = len(mapping_errors) == 0
+    if len(specs) == 0:
+        mapping_reason = "NO_MAPPABLE_FINDINGS"
+    elif mapping_available:
+        mapping_reason = "MAPPABLE_FINDINGS_CONVERTED"
+    else:
+        mapping_reason = "MAPPING_PARTIAL_OR_FAILED"
+
+    return {
+        "mapping_available": mapping_available,
+        "mapping_mode": mode,
+        "mapping_reason": mapping_reason,
+        "source_audit_mode": audit_report.get("audit_mode"),
+        "source_audit_state": source_state,
+        "source_audit_reason": source_reason,
+        "mapped_issue_classes": mapped_issue_classes,
+        "corrective_records": corrective_records,
+        "formatted_records": formatted_records,
+        "record_count": len(corrective_records),
+        "warnings": sorted(set([*warnings])),
+        "errors": mapping_errors,
+        "lineage_mutation_performed": False,
+        "event_creation_performed": False,
+        "history_rewrite_performed": False,
+    }
 
 class NeutralFamilyMemoryV1:
     """
@@ -490,6 +1024,467 @@ class NeutralFamilyMemoryV1:
             if family_id in sources or family_id in successors:
                 out.append(evt)
         return out
+
+    def get_durable_transition_ledger_integrity_audit(self) -> dict:
+        """
+        Durable Transition Ledger Integrity Audit v1.0.
+        Read-only foundational audit over durable transition-ledger truth.
+        """
+        _AUDIT_MODE = "DURABLE_TRANSITION_LEDGER_INTEGRITY"
+        _AUDIT_STATES = {
+            "READY": "DURABLE_TRANSITION_LEDGER_AUDIT_READY",
+            "PARTIAL": "DURABLE_TRANSITION_LEDGER_AUDIT_PARTIAL",
+            "UNAVAILABLE": "DURABLE_TRANSITION_LEDGER_AUDIT_UNAVAILABLE",
+        }
+        required_surfaces = {
+            "get_event_ledger": callable(getattr(self, "get_event_ledger", None)),
+            "_get_ledger_event_by_id": callable(getattr(self, "_get_ledger_event_by_id", None)),
+            "run_lineage_integrity_audit": callable(getattr(self, "run_lineage_integrity_audit", None)),
+            "get_lineage_integrity_report": callable(getattr(self, "get_lineage_integrity_report", None)),
+        }
+
+        def _is_int_like(value) -> bool:
+            if isinstance(value, bool):
+                return False
+            if isinstance(value, int):
+                return True
+            if isinstance(value, float):
+                return math.isfinite(value) and float(value).is_integer()
+            return False
+
+        def _unavailable(
+            *,
+            reason: str,
+            explanation: str,
+            warnings: list[str],
+            ledger_surface,
+            lineage_audit_surface,
+            lineage_report_surface,
+        ) -> dict:
+            return {
+                "audit_available": False,
+                "audit_mode": _AUDIT_MODE,
+                "audit_state": _AUDIT_STATES["UNAVAILABLE"],
+                "audit_reason": reason,
+                "check_results": [],
+                "integrity_counts": {
+                    "total_records": 0,
+                    "dict_record_count": 0,
+                    "non_dict_record_count": 0,
+                    "unique_event_id_count": 0,
+                    "duplicate_event_id_count": 0,
+                    "required_field_issue_count": 0,
+                    "type_issue_count": 0,
+                    "ordering_issue_count": 0,
+                    "ambiguous_lookup_event_id_count": 0,
+                    "lineage_issue_count": 0,
+                },
+                "contract_surface": {
+                    "required_surfaces": required_surfaces,
+                    "required_transition_fields": [
+                        "event_id",
+                        "event_type",
+                        "source_family_ids",
+                        "successor_family_ids",
+                        "event_order",
+                        "ledger_write_order",
+                    ],
+                    "ordering_anchor_fields": [
+                        "event_order",
+                        "ledger_write_order",
+                    ],
+                },
+                "supporting_surfaces": {
+                    "durable_event_ledger": ledger_surface,
+                    "lineage_integrity_audit": lineage_audit_surface,
+                    "lineage_integrity_report": lineage_report_surface,
+                },
+                "warnings": sorted(set(warnings)),
+                "explanation_lines": [explanation],
+                "lineage_mutation_performed": False,
+                "event_creation_performed": False,
+                "history_rewrite_performed": False,
+            }
+
+        missing = [name for name, present in required_surfaces.items() if not present]
+        if missing:
+            return _unavailable(
+                reason="REQUIRED_SURFACE_MISSING",
+                explanation=(
+                    "Required durable-ledger integrity surface missing: "
+                    + ", ".join(sorted(missing))
+                    + "."
+                ),
+                warnings=["REQUIRED_SURFACE_MISSING"],
+                ledger_surface=None,
+                lineage_audit_surface=None,
+                lineage_report_surface=None,
+            )
+
+        try:
+            events = self.get_event_ledger()
+        except Exception as exc:
+            return _unavailable(
+                reason="LEDGER_SURFACE_UNUSABLE",
+                explanation=f"get_event_ledger() raised {type(exc).__name__}.",
+                warnings=["LEDGER_SURFACE_UNUSABLE", "LEDGER_PARSE_OR_READ_FAILURE"],
+                ledger_surface=None,
+                lineage_audit_surface=None,
+                lineage_report_surface=None,
+            )
+
+        if not isinstance(events, list):
+            return _unavailable(
+                reason="LEDGER_SURFACE_SHAPE_INVALID",
+                explanation="get_event_ledger() returned non-list output.",
+                warnings=["LEDGER_SURFACE_SHAPE_INVALID"],
+                ledger_surface=events,
+                lineage_audit_surface=None,
+                lineage_report_surface=None,
+            )
+
+        lineage_audit = None
+        lineage_report = None
+        lineage_audit_usable = False
+        lineage_report_usable = False
+        warnings: list[str] = []
+
+        try:
+            lineage_audit = self.run_lineage_integrity_audit(max_depth=8)
+            lineage_audit_usable = isinstance(lineage_audit, dict)
+        except Exception as exc:
+            warnings.append("LINEAGE_AUDIT_SURFACE_UNUSABLE")
+            lineage_audit = {"reason": f"run_lineage_integrity_audit() raised {type(exc).__name__}"}
+
+        try:
+            lineage_report = self.get_lineage_integrity_report(max_depth=8)
+            lineage_report_usable = isinstance(lineage_report, dict)
+        except Exception as exc:
+            warnings.append("LINEAGE_REPORT_SURFACE_UNUSABLE")
+            lineage_report = {"reason": f"get_lineage_integrity_report() raised {type(exc).__name__}"}
+
+        non_dict_record_count = 0
+        required_field_issue_count = 0
+        type_issue_count = 0
+        ordering_issue_count = 0
+        per_record_issues: list[dict] = []
+        event_id_counts: dict[str, int] = {}
+        ledger_orders_in_read_order: list[tuple[int, int]] = []
+
+        for idx, evt in enumerate(events):
+            if not isinstance(evt, dict):
+                non_dict_record_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": None,
+                        "issue_type": "LEDGER_RECORD_NOT_DICT",
+                    }
+                )
+                continue
+
+            event_id = evt.get("event_id")
+            if not isinstance(event_id, str) or not event_id:
+                required_field_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": None,
+                        "issue_type": "MISSING_OR_INVALID_EVENT_ID",
+                    }
+                )
+                event_id_key = f"<missing:{idx}>"
+            else:
+                event_id_key = event_id
+            event_id_counts[event_id_key] = event_id_counts.get(event_id_key, 0) + 1
+
+            event_type = evt.get("event_type")
+            if not isinstance(event_type, str) or not event_type:
+                required_field_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": event_id,
+                        "issue_type": "MISSING_OR_INVALID_EVENT_TYPE",
+                    }
+                )
+
+            source_ids = evt.get("source_family_ids")
+            if not isinstance(source_ids, list):
+                required_field_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": event_id,
+                        "issue_type": "MISSING_OR_INVALID_SOURCE_FAMILY_IDS",
+                    }
+                )
+            elif any(not isinstance(x, str) or not x for x in source_ids):
+                type_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": event_id,
+                        "issue_type": "SOURCE_FAMILY_IDS_ELEMENT_TYPE_INVALID",
+                    }
+                )
+
+            successor_ids = evt.get("successor_family_ids")
+            if not isinstance(successor_ids, list):
+                required_field_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": event_id,
+                        "issue_type": "MISSING_OR_INVALID_SUCCESSOR_FAMILY_IDS",
+                    }
+                )
+            elif any(not isinstance(x, str) or not x for x in successor_ids):
+                type_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": event_id,
+                        "issue_type": "SUCCESSOR_FAMILY_IDS_ELEMENT_TYPE_INVALID",
+                    }
+                )
+
+            event_order = evt.get("event_order")
+            if not _is_int_like(event_order):
+                required_field_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": event_id,
+                        "issue_type": "MISSING_OR_INVALID_EVENT_ORDER",
+                    }
+                )
+
+            ledger_write_order = evt.get("ledger_write_order")
+            if not _is_int_like(ledger_write_order):
+                required_field_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": event_id,
+                        "issue_type": "MISSING_OR_INVALID_LEDGER_WRITE_ORDER",
+                    }
+                )
+            else:
+                ledger_orders_in_read_order.append((idx, int(ledger_write_order)))
+
+            timestamp = evt.get("ledger_timestamp_utc")
+            if timestamp is not None and not isinstance(timestamp, str):
+                type_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": idx,
+                        "event_id": event_id,
+                        "issue_type": "LEDGER_TIMESTAMP_TYPE_INVALID",
+                    }
+                )
+
+        duplicate_event_ids = sorted(
+            [
+                event_id
+                for event_id, count in event_id_counts.items()
+                if count > 1 and not str(event_id).startswith("<missing:")
+            ]
+        )
+        duplicate_event_id_count = len(duplicate_event_ids)
+
+        ambiguous_lookup_event_ids: list[str] = []
+        for event_id in duplicate_event_ids:
+            _evt, dup_count = self._get_ledger_event_by_id(event_id)
+            if dup_count > 1:
+                ambiguous_lookup_event_ids.append(event_id)
+        ambiguous_lookup_event_id_count = len(ambiguous_lookup_event_ids)
+
+        for i in range(1, len(ledger_orders_in_read_order)):
+            prev_idx, prev_order = ledger_orders_in_read_order[i - 1]
+            curr_idx, curr_order = ledger_orders_in_read_order[i]
+            if curr_order <= prev_order:
+                ordering_issue_count += 1
+                per_record_issues.append(
+                    {
+                        "event_index": curr_idx,
+                        "event_id": events[curr_idx].get("event_id")
+                        if isinstance(events[curr_idx], dict)
+                        else None,
+                        "issue_type": "LEDGER_WRITE_ORDER_NOT_STRICTLY_INCREASING",
+                        "details": {
+                            "previous_event_index": prev_idx,
+                            "previous_ledger_write_order": prev_order,
+                            "current_ledger_write_order": curr_order,
+                        },
+                    }
+                )
+
+        lineage_issue_count = 0
+        lineage_audit_issue_counts = {}
+        if lineage_audit_usable:
+            lineage_issue_count = int(lineage_audit.get("issue_count", 0))
+            lineage_audit_issue_counts = dict(
+                lineage_audit.get("issue_counts_by_category", {})
+            )
+
+        lineage_anchor_consistent = bool(
+            lineage_audit_usable and lineage_report_usable and lineage_audit == lineage_report
+        )
+        if not lineage_anchor_consistent:
+            warnings.append("LINEAGE_ANCHOR_SURFACE_MISMATCH")
+
+        check_results = [
+            {
+                "check_name": "LEDGER_RECORDS_LIST_SHAPED",
+                "passed": True,
+                "reason": "LEDGER_LIST_READABLE",
+                "details": {"total_records": len(events)},
+            },
+            {
+                "check_name": "LEDGER_RECORDS_DICT_SHAPED",
+                "passed": non_dict_record_count == 0,
+                "reason": "DICT_SHAPE_OK"
+                if non_dict_record_count == 0
+                else "NON_DICT_RECORDS_DETECTED",
+                "details": {"non_dict_record_count": non_dict_record_count},
+            },
+            {
+                "check_name": "REQUIRED_TRANSITION_FIELDS_VALID",
+                "passed": required_field_issue_count == 0 and type_issue_count == 0,
+                "reason": "REQUIRED_FIELDS_OK"
+                if required_field_issue_count == 0 and type_issue_count == 0
+                else "REQUIRED_FIELD_OR_TYPE_ISSUES_DETECTED",
+                "details": {
+                    "required_field_issue_count": required_field_issue_count,
+                    "type_issue_count": type_issue_count,
+                },
+            },
+            {
+                "check_name": "EVENT_ID_LOOKUP_UNAMBIGUOUS",
+                "passed": ambiguous_lookup_event_id_count == 0,
+                "reason": "EVENT_ID_LOOKUPS_UNAMBIGUOUS"
+                if ambiguous_lookup_event_id_count == 0
+                else "AMBIGUOUS_EVENT_ID_LOOKUPS_DETECTED",
+                "details": {
+                    "duplicate_event_ids": duplicate_event_ids,
+                    "ambiguous_lookup_event_ids": ambiguous_lookup_event_ids,
+                },
+            },
+            {
+                "check_name": "LEDGER_WRITE_ORDER_STRICT_INCREASING",
+                "passed": ordering_issue_count == 0,
+                "reason": "ORDERING_OK"
+                if ordering_issue_count == 0
+                else "ORDERING_ISSUES_DETECTED",
+                "details": {"ordering_issue_count": ordering_issue_count},
+            },
+            {
+                "check_name": "LINEAGE_ANCHOR_SURFACES_CONSISTENT",
+                "passed": lineage_anchor_consistent,
+                "reason": "LINEAGE_ANCHORS_MATCH"
+                if lineage_anchor_consistent
+                else "LINEAGE_ANCHORS_MISMATCH_OR_UNUSABLE",
+                "details": {
+                    "lineage_audit_usable": lineage_audit_usable,
+                    "lineage_report_usable": lineage_report_usable,
+                },
+            },
+        ]
+
+        if duplicate_event_id_count > 0:
+            warnings.append("DUPLICATE_EVENT_ID_DETECTED")
+        if ordering_issue_count > 0:
+            warnings.append("LEDGER_ORDERING_ISSUES_DETECTED")
+        if required_field_issue_count > 0 or type_issue_count > 0:
+            warnings.append("LEDGER_SCHEMA_ISSUES_DETECTED")
+        if non_dict_record_count > 0:
+            warnings.append("LEDGER_RECORD_SHAPE_ISSUES_DETECTED")
+        if lineage_audit_usable and lineage_issue_count > 0:
+            warnings.append("LINEAGE_INTEGRITY_ISSUES_PRESENT")
+
+        if len(events) == 0:
+            audit_state = _AUDIT_STATES["PARTIAL"]
+            audit_reason = "LEDGER_EMPTY_NO_TRANSITION_RECORDS"
+        else:
+            ready_checks = (
+                non_dict_record_count == 0
+                and required_field_issue_count == 0
+                and type_issue_count == 0
+                and duplicate_event_id_count == 0
+                and ordering_issue_count == 0
+                and lineage_anchor_consistent
+                and lineage_issue_count == 0
+            )
+            if ready_checks:
+                audit_state = _AUDIT_STATES["READY"]
+                audit_reason = "ALL_LEDGER_INTEGRITY_CHECKS_PASSED"
+            else:
+                audit_state = _AUDIT_STATES["PARTIAL"]
+                audit_reason = "LEDGER_INTEGRITY_LIMITED_OR_AMBIGUOUS"
+
+        return {
+            "audit_available": True,
+            "audit_mode": _AUDIT_MODE,
+            "audit_state": audit_state,
+            "audit_reason": audit_reason,
+            "check_results": check_results,
+            "integrity_counts": {
+                "total_records": len(events),
+                "dict_record_count": len(events) - non_dict_record_count,
+                "non_dict_record_count": non_dict_record_count,
+                "unique_event_id_count": len(
+                    [x for x in event_id_counts.keys() if not str(x).startswith("<missing:")]
+                ),
+                "duplicate_event_id_count": duplicate_event_id_count,
+                "required_field_issue_count": required_field_issue_count,
+                "type_issue_count": type_issue_count,
+                "ordering_issue_count": ordering_issue_count,
+                "ambiguous_lookup_event_id_count": ambiguous_lookup_event_id_count,
+                "lineage_issue_count": lineage_issue_count,
+                "lineage_issue_counts_by_category": lineage_audit_issue_counts,
+            },
+            "contract_surface": {
+                "required_surfaces": required_surfaces,
+                "required_transition_fields": [
+                    "event_id",
+                    "event_type",
+                    "source_family_ids",
+                    "successor_family_ids",
+                    "event_order",
+                    "ledger_write_order",
+                ],
+                "ordering_anchor_fields": [
+                    "event_order",
+                    "ledger_write_order",
+                ],
+                "schema_anchor_apis": [
+                    "get_transition_report",
+                    "get_event_dossier",
+                    "get_family_dossier",
+                ],
+            },
+            "supporting_surfaces": {
+                "durable_event_ledger": events,
+                "lineage_integrity_audit": lineage_audit,
+                "lineage_integrity_report": lineage_report,
+            },
+            "warnings": sorted(set(warnings)),
+            "explanation_lines": [
+                f"Ledger integrity audit state: {audit_state}",
+                f"Ledger integrity audit reason: {audit_reason}",
+                f"Total durable ledger records: {len(events)}",
+                f"Duplicate event IDs: {duplicate_event_id_count}",
+                f"Required field/type issues: {required_field_issue_count + type_issue_count}",
+                f"Ordering issues: {ordering_issue_count}",
+                f"Lineage issue count: {lineage_issue_count}",
+                f"Per-record issue entries: {len(per_record_issues)}",
+            ],
+            "per_record_issues": per_record_issues,
+            "lineage_mutation_performed": False,
+            "event_creation_performed": False,
+            "history_rewrite_performed": False,
+        }
 
     def _build_ancestry_index(self) -> dict:
         """
