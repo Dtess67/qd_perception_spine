@@ -36,13 +36,13 @@ This is the single source of truth for:
 Phase I — Constitutional Lock (governing v0.3 in effect)
 
 ### Last completed layer
-Governance drop completed: governing build file and constitutional stub set created in /governance/
+EXPERIMENTAL_FOUNDATION.md v1.1 drafted, tightened, pressure-tested, and ratified
 
 ### Current recommended next layer
-Phase I continuation — align ledger to governing posture, then draft EXPERIMENTAL_FOUNDATION.md
+Phase I continuation — select and draft the next constitutional artifact (recommended: REBUILD_RATIONALE.md)
 
 ### Why this next layer exists
-The governing build file is now active. The next honest move is to align the ledger and constitutional entry points so cold sessions inherit correct governance, then draft EXPERIMENTAL_FOUNDATION.md as the first new load-bearing document under Phase I. Historical decision-loop work remains preserved, but it is no longer the current governing frontier.
+The empirical inheritance bridge is now ratified. The next honest move is to continue Phase I by closing another constitutional artifact, with REBUILD_RATIONALE.md recommended because EXPERIMENTAL_FOUNDATION.md explicitly identifies unresolved QD_v3 inheritance gaps.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -301,6 +301,17 @@ The governing build file is now active. The next honest move is to align the led
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-15 (Phase I Empirical Bridge — EXPERIMENTAL_FOUNDATION v1.1 Ratified)
+#### What we built
+- drafted governance/EXPERIMENTAL_FOUNDATION.md as the Phase I empirical inheritance bridge
+- completed v1.1 tightening pass
+- added explicit source-resolution notes
+- added metric inheritance crosswalk
+- operationalized HOLD / bounded recovery language
+- checked Non-Obligations consistency against derived obligations
+- document was pressure-tested and ratified for commit by Claude
+- next governance target remains open for Phase I follow-up
+
 ### Session date: 2026-04-15 (Phase I Governance Opening — Governing v0.3 Alignment)
 #### What we built
 - governance directory and governing build file created
@@ -1005,28 +1016,27 @@ The governing build file is now active. The next honest move is to align the led
 
 ## Next Step
 ### Immediate next step
-- Align BUILD_LEDGER.md to governing v0.3 posture
-- Then draft governance/EXPERIMENTAL_FOUNDATION.md
+- commit and push the ratified EXPERIMENTAL_FOUNDATION.md update
+- then select the next Phase I artifact to draft
+- recommended next artifact: governance/REBUILD_RATIONALE.md
 
 ### Why this is the next honest step
-- v0.3 is now governing
-- cold-session discoverability and constitutional pre-read are in place
-- the first new load-bearing content under Phase I is EXPERIMENTAL_FOUNDATION.md
-- the build must now connect empirical ancestry to present architectural measurement obligations
+- the governing build plan is already in place
+- EXPERIMENTAL_FOUNDATION.md is now ratified
+- Phase I should continue by closing the next constitutional gap named by the empirical bridge
+- REBUILD_RATIONALE.md is the strongest candidate because missing/partial QD_v3 inheritance is now explicitly bounded
 
 ### What it must use
 - governance/QD_END_TO_END_BUILD_PLAN_v0_3.md
+- governance/EXPERIMENTAL_FOUNDATION.md
 - BUILD_LEDGER.md
-- PrimordialSoupLab results and metrics
-- oscillator/entrainment experimental results
-- QD_v3 lessons where relevant
+- inspected QD_v3 source files and any recoverable legacy rationale artifacts
 
 ### What it must NOT do
-- freestyle new architecture beyond the governing plan
-- treat historical summaries as empirical bridge documents
-- use external classifier outputs for control or training
-- reopen locked lower-band semantics casually
-- let LLM convenience substitute for constitutional grounding
+- reopen ratified empirical bridge claims casually
+- invent QD_v3 failure causes not grounded in recoverable source
+- drift back into unguided architecture work outside Phase I priorities
+- bypass governance documents when advancing the build
 
 ---
 
@@ -1080,10 +1090,12 @@ Read these first:
 Current governing posture:
 - v0.3 is governing
 - Phase I is open
+- EXPERIMENTAL_FOUNDATION.md is ratified
 - constitutional artifacts must be read before advancing the build
 
 Immediate next target:
-- draft governance/EXPERIMENTAL_FOUNDATION.md
+- choose and draft the next constitutional artifact
+- recommended next target: governance/REBUILD_RATIONALE.md
 
 Do not:
 - reopen lower-band semantics casually
