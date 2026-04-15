@@ -1,5 +1,8 @@
 # QD Build Ledger
 
+Canonical governance documents live in /governance/. Start with governance/QD_END_TO_END_BUILD_PLAN_v0_3.md before advancing the build.
+Any session that intends to advance the build must read the governing document and applicable constitutional artifacts in /governance/ before proposing or making architecture changes.
+
 ## Purpose
 This is the single source of truth for:
 - where we are
@@ -30,16 +33,16 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-QD Decision Loop Prototype v0.0a (Edge-Case Pressure Tests)
+Phase I — Constitutional Lock (governing v0.3 in effect)
 
 ### Last completed layer
-QD Decision Loop Prototype v0.0a edge-case pressure tests completed and verified
+Governance drop completed: governing build file and constitutional stub set created in /governance/
 
 ### Current recommended next layer
-HOLD - Keep decision-loop prototype isolated and manual-input only; no integration/persistence/autonomy without explicit contract
+Phase I continuation — align ledger to governing posture, then draft EXPERIMENTAL_FOUNDATION.md
 
 ### Why this next layer exists
-The isolated prototype now has edge-case pressure coverage and minimal spec-consistency hardening, supporting additional manual-trace pressure tests without coupling into locked evidence/consumer surfaces.
+The governing build file is now active. The next honest move is to align the ledger and constitutional entry points so cold sessions inherit correct governance, then draft EXPERIMENTAL_FOUNDATION.md as the first new load-bearing document under Phase I. Historical decision-loop work remains preserved, but it is no longer the current governing frontier.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -298,6 +301,14 @@ The isolated prototype now has edge-case pressure coverage and minimal spec-cons
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-15 (Phase I Governance Opening — Governing v0.3 Alignment)
+#### What we built
+- governance directory and governing build file created
+- constitutional stub files created
+- BUILD_LEDGER.md updated with governance entry point and constitutional pre-read rule
+- BUILD_LEDGER.md aligned to governing v0.3 posture
+- next target is governance/EXPERIMENTAL_FOUNDATION.md
+
 ### Session date: 2026-04-06 (Decision Loop Prototype v0.0a - Edge-Case Pressure Tests)
 #### What we built
 - added focused edge-case tests for prototype chamber behavior:
@@ -994,27 +1005,28 @@ The isolated prototype now has edge-case pressure coverage and minimal spec-cons
 
 ## Next Step
 ### Immediate next step
-Hold integration expansion; pressure-test the isolated decision-loop prototype with additional manual traces only.
+- Align BUILD_LEDGER.md to governing v0.3 posture
+- Then draft governance/EXPERIMENTAL_FOUNDATION.md
 
 ### Why this is the next honest step
-The prototype is now executable and deterministic, but still intentionally isolated. The honest next move is manual-case hardening, not runtime coupling or persistence.
+- v0.3 is now governing
+- cold-session discoverability and constitutional pre-read are in place
+- the first new load-bearing content under Phase I is EXPERIMENTAL_FOUNDATION.md
+- the build must now connect empirical ancestry to present architectural measurement obligations
 
 ### What it must use
-- If HOLD is lifted:
-  - `ManualTraceInputV0`
-  - `resolve_manual_decision_trace_v0_0(...)`
-  - explicit manual trace catalogs
-  - explicit contract callout before any integration or persistence
+- governance/QD_END_TO_END_BUILD_PLAN_v0_3.md
+- BUILD_LEDGER.md
+- PrimordialSoupLab results and metrics
+- oscillator/entrainment experimental results
+- QD_v3 lessons where relevant
 
 ### What it must NOT do
-- invent new truth predicates
-- reopen locked lower semantics
-- add hidden direct dependencies into existing system/cross-band/observability review outputs
-- reinterpret bounded or full-range evidence contracts
-- add autonomous/adaptive learning behavior
-- add persistence/write-path behavior
-- auto-invoke from durable-ledger/corrective/evidence surfaces
-- mutate lineage, create events, or rewrite history
+- freestyle new architecture beyond the governing plan
+- treat historical summaries as empirical bridge documents
+- use external classifier outputs for control or training
+- reopen locked lower-band semantics casually
+- let LLM convenience substitute for constitutional grounding
 
 ---
 
@@ -1058,44 +1070,26 @@ The prototype is now executable and deterministic, but still intentionally isola
 ---
 
 ## Restart Prompt
-Resume qd_perception_spine from BUILD_LEDGER.md.
+Resume qd_perception_spine from BUILD_LEDGER.md and governance/QD_END_TO_END_BUILD_PLAN_v0_3.md.
 
-Read these sections first:
-1. Current Build State
-2. Locked Contracts
-3. Latest Verified Facts
-4. Today’s Work Log
-5. Next Step
+Read these first:
+1. governance/QD_END_TO_END_BUILD_PLAN_v0_3.md
+2. BUILD_LEDGER.md
+3. applicable files in /governance/ for the current Phase I task
 
-Current verified suite count:
-- Full suite: 404 passed, 1 warning
-
-Current frozen top surface:
-- get_unified_system_consumer_posture_summary()
-
-Current verified top audit surface:
-- get_unified_system_consumer_posture_stage_lock_audit()
-
-Current top delivery surface:
-- get_unified_system_consumer_summary()
-
-Current observability evidence-review surface:
-- get_observability_evidence_review_summary()
-
-Current observability evidence-review audit surface:
-- get_observability_evidence_review_stage_lock_audit()
+Current governing posture:
+- v0.3 is governing
+- Phase I is open
+- constitutional artifacts must be read before advancing the build
 
 Immediate next target:
-- HOLD: Keep decision-loop prototype isolated/manual-input only; pressure-test traces before any integration request
+- draft governance/EXPERIMENTAL_FOUNDATION.md
 
-First action next session:
-- read BUILD_LEDGER.md first
-- run focused prototype pressure tests before considering any integration change
-
-Do not reopen locked lower semantics.
-Do not invent new predicates.
-Do not add hidden lower-band calls.
-Preserve read-only guardrails and fail closed when evidence is insufficient.
+Do not:
+- reopen lower-band semantics casually
+- invent new predicates outside constitutional scope
+- bypass governance docs when advancing the build
+- treat prototype history as current frontier
 
 ---
 
