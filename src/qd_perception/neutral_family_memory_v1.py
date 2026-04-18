@@ -18,6 +18,7 @@ class FamilyDecision:
     - family_id: Optional[str]
     - symbol_id: str
     - confidence: float (0.0 to 1.0)
+    - hold_mode: Optional[str] (structured hold classification; rationale is non-authoritative)
     - rationale: str (Structural explanation of the decision)
     """
     status: str
@@ -25,6 +26,7 @@ class FamilyDecision:
     symbol_id: str
     confidence: float
     rationale: str
+    hold_mode: Optional[str] = None
 
 @dataclass
 class NeutralFamilyRecordV1:
@@ -745,6 +747,7 @@ class NeutralFamilyMemoryV1:
                 family_id=fam_id,
                 symbol_id=symbol_id,
                 confidence=1.0,
+                hold_mode=None,
                 rationale=f"Symbol {symbol_id} is already a member of {fam_id} at distance {dist:.3f}."
             )
 
@@ -785,6 +788,7 @@ class NeutralFamilyMemoryV1:
                         family_id=None,
                         symbol_id=symbol_id,
                         confidence=0.6,
+                        hold_mode=None,
                         rationale=(f"Persistent structural tension ({hits} hits) between {best_id} and {next_id}. "
                                    f"Earned neutral BRIDGE status.")
                     )
@@ -794,6 +798,7 @@ class NeutralFamilyMemoryV1:
                         family_id=None, # Explicitly unassigned due to tension
                         symbol_id=symbol_id,
                         confidence=0.1,
+                        hold_mode=None,
                         rationale=(f"Structural tension detected between {best_id} (dist={best_dist:.3f}) "
                                    f"and {next_id} (dist={next_dist:.3f}). Margin ({next_dist-best_dist:.3f}) "
                                    f"below threshold ({self.TENSION_MARGIN_THRESHOLD}). Hold for resolution.")
@@ -814,6 +819,7 @@ class NeutralFamilyMemoryV1:
                         family_id=best_family_id,
                         symbol_id=symbol_id,
                         confidence=1.0 - (min_dist / self.DISTANCE_THRESHOLD),
+                        hold_mode=None,
                         rationale=(f"Symbol {symbol_id} dist ({min_dist:.3f}) is {envelope_str} family envelope "
                                    f"({best_fam_spread:.3f}). Persistence ({hits}) earned join for {best_family_id}.")
                     )
@@ -823,6 +829,7 @@ class NeutralFamilyMemoryV1:
                         family_id=best_family_id,
                         symbol_id=symbol_id,
                         confidence=0.5,
+                        hold_mode="JOIN_PERSISTENCE",
                         rationale=(f"Symbol {symbol_id} within join distance ({min_dist:.3f}, {envelope_str} envelope) "
                                    f"but requires more persistence ({hits}/{self.JOIN_PERSISTENCE_THRESHOLD}).")
                     )
@@ -836,6 +843,7 @@ class NeutralFamilyMemoryV1:
                         family_id=None,
                         symbol_id=symbol_id,
                         confidence=0.4,
+                        hold_mode=None,
                         rationale=(f"Persistent borderline proximity ({edge_hits} hits) to {best_family_id} "
                                    f"at dist {min_dist:.3f}. Earned neutral EDGE status.")
                     )
@@ -845,6 +853,7 @@ class NeutralFamilyMemoryV1:
                         family_id=best_family_id,
                         symbol_id=symbol_id,
                         confidence=0.2,
+                        hold_mode="EDGE_BAND_PROXIMITY",
                         rationale=(f"Symbol {symbol_id} in borderline band (dist={min_dist:.3f}, {envelope_str} envelope) "
                                    f"for {best_family_id}. Hold for structural earning.")
                     )
@@ -857,6 +866,7 @@ class NeutralFamilyMemoryV1:
             family_id=None,
             symbol_id=symbol_id,
             confidence=1.0,
+            hold_mode=None,
             rationale=f"No existing structural family found within hold threshold ({self.HOLD_THRESHOLD})."
         )
 
@@ -914,8 +924,8 @@ class NeutralFamilyMemoryV1:
                 if symbol_id not in self._pending_kinship:
                     self._pending_kinship[symbol_id] = {}
                 
-                # Check if it was specifically a boundary/edge hold
-                if "borderline band" in decision.rationale:
+                # Structured hold mode controls persistence lane; rationale text is non-authoritative.
+                if decision.hold_mode == "EDGE_BAND_PROXIMITY":
                     if symbol_id not in self._pending_edge:
                         self._pending_edge[symbol_id] = {}
                     current_edge = self._pending_edge[symbol_id].get(fam_id, 0)
