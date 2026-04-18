@@ -33,16 +33,24 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-Phase I — Constitutional Lock (governing v0.3 in effect)
+Phase I — Constitutional Lock (artifact chain complete; closure confirmation pending)
 
 ### Last completed layer
-REBUILD_RATIONALE.md drafted, pressure-tested, tightened, and ratified
+EXPRESSION_BOUNDARY_STUB.md drafted, pressure-tested, and ratified as the sixth Phase I constitutional artifact
 
 ### Current recommended next layer
-Phase I continuation — select and draft the next constitutional artifact (target pending explicit selection)
+Phase I closure confirmation against `QD_END_TO_END_BUILD_PLAN_v0_3.md` exit conditions
 
 ### Why this next layer exists
-REBUILD_RATIONALE.md is now ratified alongside EXPERIMENTAL_FOUNDATION.md. Phase I remains open, so the next honest move is to explicitly select the next constitutional artifact and close it under the same governance-first, source-grounded discipline.
+all six required Phase I constitutional artifacts are now ratified; the next honest move is to confirm repo-visible closure against the v0.3 closure test; no additional Phase I artifact drafting remains unless closure check exposes a real gap
+
+### Ratified Phase I constitutional artifacts
+- governance/EXPERIMENTAL_FOUNDATION.md
+- governance/REBUILD_RATIONALE.md
+- governance/CONSTRAINTS.md
+- governance/ADVANCEMENT_RULES.md
+- governance/TETRACELL_RELATIONSHIP.md
+- governance/EXPRESSION_BOUNDARY_STUB.md
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -301,6 +309,21 @@ REBUILD_RATIONALE.md is now ratified alongside EXPERIMENTAL_FOUNDATION.md. Phase
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-18 (Phase I Governance Chain Ratification — Closure Confirmation Pending)
+#### What we built
+- CONSTRAINTS.md ratified and synced
+- ADVANCEMENT_RULES.md ratified and synced
+- TETRACELL_RELATIONSHIP.md ratified and synced
+- EXPRESSION_BOUNDARY_STUB.md ratified and synced
+- current next step is Phase I closure confirmation
+
+### Session date: 2026-04-18 (Phase I Artifact Selection Lock — governance/CONSTRAINTS.md)
+#### What we built
+- evaluated constitutional stub candidates against ratified EXPERIMENTAL_FOUNDATION.md and REBUILD_RATIONALE.md
+- selected governance/CONSTRAINTS.md as the strongest next Phase I artifact
+- locked that selection in controlling ledger sections (Current Build State, Next Step, Restart Prompt)
+- no artifact drafting performed in this step
+
 ### Session date: 2026-04-18 (Phase I Rebuild Rationale — Draft, Pressure-Test, Ratified)
 #### What we built
 - Cody draft work: drafted governance/REBUILD_RATIONALE.md from inspected QD_v3 sources, repo-visible structure, and ratified governance artifacts
@@ -1031,28 +1054,27 @@ REBUILD_RATIONALE.md is now ratified alongside EXPERIMENTAL_FOUNDATION.md. Phase
 
 ## Next Step
 ### Immediate next step
-- commit and push the ratified REBUILD_RATIONALE.md update plus ledger synchronization
-- run a bounded Phase I artifact-selection step
-- lock the selected next artifact in BUILD_LEDGER.md before drafting
+- Phase I closure confirmation against the governing v0.3 exit conditions
 
 ### Why this is the next honest step
 - the governing build plan is already in place
-- EXPERIMENTAL_FOUNDATION.md and REBUILD_RATIONALE.md are now ratified
-- Phase I remains open until additional constitutional artifacts are closed
-- selecting the next artifact explicitly prevents unguided drafting and keeps cold-session continuity intact
+- all six required Phase I constitutional artifacts are now ratified
+- Phase I closure still requires explicit repo-visible confirmation against the governing exit test
 
 ### What it must use
 - governance/QD_END_TO_END_BUILD_PLAN_v0_3.md
 - governance/EXPERIMENTAL_FOUNDATION.md
 - governance/REBUILD_RATIONALE.md
+- governance/CONSTRAINTS.md
+- governance/ADVANCEMENT_RULES.md
+- governance/TETRACELL_RELATIONSHIP.md
+- governance/EXPRESSION_BOUNDARY_STUB.md
 - BUILD_LEDGER.md
-- constitutional artifact manifest in /governance/
 
 ### What it must NOT do
-- reopen ratified claims in EXPERIMENTAL_FOUNDATION.md or REBUILD_RATIONALE.md casually
-- invent QD_v3 failure causes not grounded in recoverable source
-- draft the next artifact before explicit selection is recorded in the ledger
-- bypass governance documents when advancing the build
+- draft new Phase I artifacts unless closure testing exposes a real missing requirement
+- reopen ratified constitutional artifacts casually
+- claim Phase I closure from thread memory alone before repo-visible confirmation
 
 ---
 
@@ -1073,10 +1095,13 @@ REBUILD_RATIONALE.md is now ratified alongside EXPERIMENTAL_FOUNDATION.md. Phase
 - `ec6c62711430e015e64280be40eb7e5376a6e520` - Record system-wide evidence review v1.1a revalidation
 
 ### Commit to make next
-**Suggested commit message:** Ratify REBUILD_RATIONALE and sync Phase I ledger posture
+**Suggested commit message:** Ratify Phase I governance chain and sync ledger for closure check
 
 ### Files that should be committed
-- `governance/REBUILD_RATIONALE.md`
+- `governance/CONSTRAINTS.md`
+- `governance/ADVANCEMENT_RULES.md`
+- `governance/TETRACELL_RELATIONSHIP.md`
+- `governance/EXPRESSION_BOUNDARY_STUB.md`
 - `BUILD_LEDGER.md`
 
 ### Files that should probably stay out of Git
@@ -1096,18 +1121,17 @@ Resume qd_perception_spine from BUILD_LEDGER.md and governance/QD_END_TO_END_BUI
 Read these first:
 1. governance/QD_END_TO_END_BUILD_PLAN_v0_3.md
 2. BUILD_LEDGER.md
-3. applicable files in /governance/ for the current Phase I task
+3. all ratified files in /governance/
 
 Current governing posture:
 - v0.3 is governing
 - Phase I is open
-- EXPERIMENTAL_FOUNDATION.md is ratified
-- REBUILD_RATIONALE.md is ratified
+- Phase I artifact chain is complete
 - constitutional artifacts must be read before advancing the build
 
 Immediate next target:
-- choose and lock the next Phase I constitutional artifact in BUILD_LEDGER.md
-- draft only the selected artifact after that lock step
+- closure confirmation is the immediate target
+- no new Phase I artifact drafting unless the closure test reveals an actual missing constitutional output
 
 Do not:
 - reopen lower-band semantics casually
