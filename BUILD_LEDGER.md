@@ -33,16 +33,16 @@ This is the single source of truth for:
 
 ## Current Build State
 ### Current layer / frontier
-Phase I — Constitutional Lock (artifact chain complete; closure confirmation pending)
+Phase III — Substrate Purification and Alignment (Phase I closed; Phase II bridge artifact already satisfied)
 
 ### Last completed layer
-EXPRESSION_BOUNDARY_STUB.md drafted, pressure-tested, and ratified as the sixth Phase I constitutional artifact
+Phase I — Constitutional Lock formally closed against the v0.3 exit conditions
 
 ### Current recommended next layer
-Phase I closure confirmation against `QD_END_TO_END_BUILD_PLAN_v0_3.md` exit conditions
+Phase III substrate audit of neutral-lane honesty, semantic leakage, and hidden human-shaped scaffolding
 
 ### Why this next layer exists
-all six required Phase I constitutional artifacts are now ratified; the next honest move is to confirm repo-visible closure against the v0.3 closure test; no additional Phase I artifact drafting remains unless closure check exposes a real gap
+all six Phase I constitutional artifacts are ratified; the formal v0.3 closure test passed; `EXPERIMENTAL_FOUNDATION.md` already satisfies the required Phase II bridge artifact; the next honest move is Phase III substrate purification/alignment work, especially neutral substrate audit and semantic backflow detection
 
 ### Ratified Phase I constitutional artifacts
 - governance/EXPERIMENTAL_FOUNDATION.md
@@ -51,6 +51,11 @@ all six required Phase I constitutional artifacts are now ratified; the next hon
 - governance/ADVANCEMENT_RULES.md
 - governance/TETRACELL_RELATIONSHIP.md
 - governance/EXPRESSION_BOUNDARY_STUB.md
+
+### Phase I closure note
+- Phase I closure confirmed
+- repo-visible cold-session test passed
+- no further Phase I artifact drafting remains unless a future constitutional reopening event occurs
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -309,6 +314,14 @@ all six required Phase I constitutional artifacts are now ratified; the next hon
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-18 (Phase I Closure Confirmation — Transition to Phase III)
+#### What we built
+- repo-visible Phase I closure check completed
+- all nine v0.3 closure conditions passed
+- Phase I formally closed
+- Phase II bridge artifact already satisfied by ratified `EXPERIMENTAL_FOUNDATION.md`
+- next frontier set to Phase III substrate purification/alignment
+
 ### Session date: 2026-04-18 (Phase I Governance Chain Ratification — Closure Confirmation Pending)
 #### What we built
 - CONSTRAINTS.md ratified and synced
@@ -1054,12 +1067,12 @@ all six required Phase I constitutional artifacts are now ratified; the next hon
 
 ## Next Step
 ### Immediate next step
-- Phase I closure confirmation against the governing v0.3 exit conditions
+- Phase III substrate audit focused on neutral substrate honesty and semantic leakage
 
 ### Why this is the next honest step
-- the governing build plan is already in place
-- all six required Phase I constitutional artifacts are now ratified
-- Phase I closure still requires explicit repo-visible confirmation against the governing exit test
+- Phase I closure confirmation completed successfully
+- Phase II bridge artifact is already satisfied by ratified `EXPERIMENTAL_FOUNDATION.md`
+- the next governed frontier is Phase III substrate purification and alignment
 
 ### What it must use
 - governance/QD_END_TO_END_BUILD_PLAN_v0_3.md
@@ -1070,11 +1083,13 @@ all six required Phase I constitutional artifacts are now ratified; the next hon
 - governance/TETRACELL_RELATIONSHIP.md
 - governance/EXPRESSION_BOUNDARY_STUB.md
 - BUILD_LEDGER.md
+- current substrate-facing repo code only where needed for audit scoping
 
 ### What it must NOT do
-- draft new Phase I artifacts unless closure testing exposes a real missing requirement
-- reopen ratified constitutional artifacts casually
-- claim Phase I closure from thread memory alone before repo-visible confirmation
+- reopen Phase I artifacts casually
+- re-draft already ratified constitutional documents
+- claim neutrality in any lane that still depends on hidden semantic shaping
+- jump to implementation changes before audit scoping is explicit
 
 ---
 
@@ -1095,7 +1110,7 @@ all six required Phase I constitutional artifacts are now ratified; the next hon
 - `ec6c62711430e015e64280be40eb7e5376a6e520` - Record system-wide evidence review v1.1a revalidation
 
 ### Commit to make next
-**Suggested commit message:** Ratify Phase I governance chain and sync ledger for closure check
+**Suggested commit message:** Close Phase I and set Phase III substrate audit frontier
 
 ### Files that should be committed
 - `governance/CONSTRAINTS.md`
@@ -1125,12 +1140,14 @@ Read these first:
 
 Current governing posture:
 - v0.3 is governing
-- Phase I is open
-- Phase I artifact chain is complete
+- Phase I is closed
+- Phase II bridge artifact is already satisfied
+- current frontier is Phase III substrate audit
 - constitutional artifacts must be read before advancing the build
 
 Immediate next target:
-- closure confirmation is the immediate target
+- perform Phase III substrate audit scoping against neutral-lane honesty and semantic leakage
+- read the full ratified governance chain before proposing substrate changes
 - no new Phase I artifact drafting unless the closure test reveals an actual missing constitutional output
 
 Do not:
