@@ -36,13 +36,13 @@ This is the single source of truth for:
 Phase I — Constitutional Lock (governing v0.3 in effect)
 
 ### Last completed layer
-EXPERIMENTAL_FOUNDATION.md v1.1 drafted, tightened, pressure-tested, and ratified
+REBUILD_RATIONALE.md drafted, pressure-tested, tightened, and ratified
 
 ### Current recommended next layer
-Phase I continuation — select and draft the next constitutional artifact (recommended: REBUILD_RATIONALE.md)
+Phase I continuation — select and draft the next constitutional artifact (target pending explicit selection)
 
 ### Why this next layer exists
-The empirical inheritance bridge is now ratified. The next honest move is to continue Phase I by closing another constitutional artifact, with REBUILD_RATIONALE.md recommended because EXPERIMENTAL_FOUNDATION.md explicitly identifies unresolved QD_v3 inheritance gaps.
+REBUILD_RATIONALE.md is now ratified alongside EXPERIMENTAL_FOUNDATION.md. Phase I remains open, so the next honest move is to explicitly select the next constitutional artifact and close it under the same governance-first, source-grounded discipline.
 
 ### Current frozen and verified top surfaces
 - current frozen posture surface: `get_unified_system_consumer_posture_summary()`
@@ -301,6 +301,21 @@ The empirical inheritance bridge is now ratified. The next honest move is to con
 ---
 
 ## Today’s Work Log
+### Session date: 2026-04-18 (Phase I Rebuild Rationale — Draft, Pressure-Test, Ratified)
+#### What we built
+- Cody draft work: drafted governance/REBUILD_RATIONALE.md from inspected QD_v3 sources, repo-visible structure, and ratified governance artifacts
+- Claude pressure-test work: challenged traceability/tightness on governance-mismatch wording and cold-session cross-reference legibility
+- Cody tightening pass: applied the two pressure-tested fixes without broadening scope
+- final ratification outcome: governance/REBUILD_RATIONALE.md accepted as ratified for this Phase I checkpoint
+- next governance target: pending explicit Phase I artifact selection
+
+### Session date: 2026-04-18 (Phase I Rebuild Rationale — Ratification-Readiness Tightening)
+#### What we built
+- applied two pressure-tested tightenings to governance/REBUILD_RATIONALE.md only
+- reworded governance-mismatch rebuild-pressure line to ground on missing cross-session/cross-source inheritance coherence in recoverable QD_v3 artifacts
+- added explicit cross-reference note to EXPERIMENTAL_FOUNDATION.md to mark overlapping QD_v3 contribution/gap claims as intentional shared empirical grounding
+- REBUILD_RATIONALE.md is now tightened for ratification review
+
 ### Session date: 2026-04-15 (Phase I Empirical Bridge — EXPERIMENTAL_FOUNDATION v1.1 Ratified)
 #### What we built
 - drafted governance/EXPERIMENTAL_FOUNDATION.md as the Phase I empirical inheritance bridge
@@ -1016,26 +1031,27 @@ The empirical inheritance bridge is now ratified. The next honest move is to con
 
 ## Next Step
 ### Immediate next step
-- commit and push the ratified EXPERIMENTAL_FOUNDATION.md update
-- then select the next Phase I artifact to draft
-- recommended next artifact: governance/REBUILD_RATIONALE.md
+- commit and push the ratified REBUILD_RATIONALE.md update plus ledger synchronization
+- run a bounded Phase I artifact-selection step
+- lock the selected next artifact in BUILD_LEDGER.md before drafting
 
 ### Why this is the next honest step
 - the governing build plan is already in place
-- EXPERIMENTAL_FOUNDATION.md is now ratified
-- Phase I should continue by closing the next constitutional gap named by the empirical bridge
-- REBUILD_RATIONALE.md is the strongest candidate because missing/partial QD_v3 inheritance is now explicitly bounded
+- EXPERIMENTAL_FOUNDATION.md and REBUILD_RATIONALE.md are now ratified
+- Phase I remains open until additional constitutional artifacts are closed
+- selecting the next artifact explicitly prevents unguided drafting and keeps cold-session continuity intact
 
 ### What it must use
 - governance/QD_END_TO_END_BUILD_PLAN_v0_3.md
 - governance/EXPERIMENTAL_FOUNDATION.md
+- governance/REBUILD_RATIONALE.md
 - BUILD_LEDGER.md
-- inspected QD_v3 source files and any recoverable legacy rationale artifacts
+- constitutional artifact manifest in /governance/
 
 ### What it must NOT do
-- reopen ratified empirical bridge claims casually
+- reopen ratified claims in EXPERIMENTAL_FOUNDATION.md or REBUILD_RATIONALE.md casually
 - invent QD_v3 failure causes not grounded in recoverable source
-- drift back into unguided architecture work outside Phase I priorities
+- draft the next artifact before explicit selection is recorded in the ledger
 - bypass governance documents when advancing the build
 
 ---
@@ -1048,23 +1064,20 @@ The empirical inheritance bridge is now ratified. The next honest move is to con
 - Repo clean: NO (current session changes pending commit)
 - Branch: `main`
 - Upstream: `origin/main`
-- Synced with upstream: YES at last commit; working tree currently dirty with local uncommitted changes
+- Synced with upstream: appears in sync (`main...origin/main`); working tree currently dirty with local uncommitted changes
 
-### Latest relevant commits (today)
+### Latest relevant commits (historical baseline)
 - `89c77e3ee7d03e030b2e788ef33ab3408f18a319` - Add cross-band evidence review windowed v1.1
 - `f639d2ef56736952e17dcdf17f9b8274b9df676e` - Add validation for cross-band evidence review windowed v1.1
 - `67576de4d400520aeacb3b31834d05c98e0fe972` - Add observability evidence review stage lock v1.1
 - `ec6c62711430e015e64280be40eb7e5376a6e520` - Record system-wide evidence review v1.1a revalidation
 
 ### Commit to make next
-**Suggested commit message:** Add decision loop prototype v0.0a edge-case pressure tests and ledger update
+**Suggested commit message:** Ratify REBUILD_RATIONALE and sync Phase I ledger posture
 
 ### Files that should be committed
-- `src/`
-- `tests/`
-- `README.md`
+- `governance/REBUILD_RATIONALE.md`
 - `BUILD_LEDGER.md`
-- selected stable run artifacts only if they are intentionally part of delivery history
 
 ### Files that should probably stay out of Git
 - `runs/` (unless curated intentionally)
@@ -1072,10 +1085,8 @@ The empirical inheritance bridge is now ratified. The next honest move is to con
 - machine-specific junk
 - `.pytest_cache/`
 
-### Current likely untracked files (expected)
-- `.junie/`
-- `cross_band_stage_lock_v1.4_summary.txt`
-- `system_stage_lock_v1.0_report_for_q.txt`
+### Current untracked files (from latest status)
+- `symbol_lab.py` (not part of this governance checkpoint)
 
 ---
 
@@ -1091,11 +1102,12 @@ Current governing posture:
 - v0.3 is governing
 - Phase I is open
 - EXPERIMENTAL_FOUNDATION.md is ratified
+- REBUILD_RATIONALE.md is ratified
 - constitutional artifacts must be read before advancing the build
 
 Immediate next target:
-- choose and draft the next constitutional artifact
-- recommended next target: governance/REBUILD_RATIONALE.md
+- choose and lock the next Phase I constitutional artifact in BUILD_LEDGER.md
+- draft only the selected artifact after that lock step
 
 Do not:
 - reopen lower-band semantics casually
