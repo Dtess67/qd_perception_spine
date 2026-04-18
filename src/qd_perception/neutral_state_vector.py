@@ -33,39 +33,50 @@ class NeutralStateMapper:
         """
         Maps a PerceptionResult to a NeutralStateVector based on structural rules.
         """
+        signature = result.proto_concept.signature
+
         # 1. Axis A: Novelty / Unfamiliarity
-        # Novel deltas or unresolved patterns increase axis_a.
+        # Novel deltas or structurally novel signatures increase axis_a.
         axis_a = 0.0
         if result.delta_frame.is_novel:
             axis_a += 0.7
-        if result.feature_frame.novelty == "novel":
+        if signature.novelty_code == 1:
             axis_a += 0.3
         
         # 2. Axis B: Magnitude / Intensity
-        # Directly tied to the intensity string and delta magnitude.
+        # Tied to structural magnitude band and delta magnitude.
         axis_b = 0.0
-        intensity_map = {"low": 0.2, "medium": 0.5, "high": 0.9}
-        axis_b = intensity_map.get(result.feature_frame.intensity, 0.0)
+        magnitude_band_map = {0: 0.2, 1: 0.5, 2: 0.9}
+        axis_b = magnitude_band_map.get(signature.magnitude_band_code, 0.0)
         # Add a small scaling for actual magnitude to differentiate within intensity bands
         axis_b += min(result.delta_frame.magnitude * 0.1, 0.1)
 
         # 3. Axis C: Trend Persistence / Pattern Stability
-        # 'steady' patterns or 'stable_signal' concepts increase axis_c.
+        # Structurally steady modes increase persistence.
         axis_c = 0.0
-        if result.feature_frame.pattern == "steady":
+        if signature.change_mode_code == 0:
             axis_c += 0.8
-        elif result.feature_frame.pattern == "drift":
+        elif signature.change_mode_code == 1:
             axis_c += 0.4
             
-        if result.proto_concept.name == "stable_signal":
+        if (
+            signature.change_mode_code == 0
+            and signature.direction_code == 0
+            and signature.novelty_code == 0
+            and signature.resolution_code == 0
+        ):
             axis_c += 0.2
             
         # 4. Axis D: Directional Disruption / Spike-like Sharpness
-        # 'spike' patterns or sudden concepts increase axis_d.
+        # Spike-like structural modes increase disruption.
         axis_d = 0.0
-        if result.feature_frame.pattern == "spike":
+        if signature.change_mode_code == 2:
             axis_d += 0.9
-        if "sudden" in result.proto_concept.name:
+        if (
+            signature.change_mode_code == 2
+            and signature.direction_code in (-1, 1)
+            and signature.resolution_code == 0
+        ):
             axis_d += 0.1
 
         # Clamp all values to [0.0, 1.0]

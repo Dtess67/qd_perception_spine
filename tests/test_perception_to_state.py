@@ -67,7 +67,7 @@ def test_unresolved_pattern_mapping():
     
     from qd_perception.delta_frame import DeltaFrame
     from qd_perception.feature_frame import FeatureFrame
-    from qd_perception.proto_concept import ProtoConcept
+    from qd_perception.proto_concept import ProtoConcept, ProtoStructuralSignatureV1
     from qd_perception.perception_pipeline import PerceptionResult
     
     mock_event = SensorEvent(source="unknown", channel="x", timestamp=1.0, value=50.0)
@@ -75,7 +75,19 @@ def test_unresolved_pattern_mapping():
                             delta=10.0, direction="rising", magnitude=10.0, rate=10.0, is_novel=True)
     mock_feature = FeatureFrame(source="unknown", channel="x", trend="rising", intensity="medium", 
                                 pattern="drift", novelty="novel")
-    mock_concept = ProtoConcept(name="unresolved_pattern", confidence=0.5, rationale="Unknown")
+    mock_concept = ProtoConcept(
+        signature=ProtoStructuralSignatureV1(
+            direction_code=1,
+            change_mode_code=9,
+            magnitude_band_code=1,
+            novelty_code=1,
+            resolution_code=1,
+            confidence=0.5,
+        ),
+        name="unresolved_pattern",
+        confidence=0.5,
+        rationale="Unknown",
+    )
     
     result = PerceptionResult(
         event=mock_event,

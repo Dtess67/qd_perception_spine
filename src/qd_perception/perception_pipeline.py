@@ -66,19 +66,36 @@ class PerceptionPipeline:
         if delta_frame.previous_value is None:
             return "FIRST_EVENT", "First sensor event received"
 
-        # Map based on the identified proto-concept
-        name = proto_concept.name
+        # Map based on structural signature; proto_concept.name is bridge/debug metadata only.
+        signature = proto_concept.signature
 
-        if name == "stable_signal":
-            return "STABLE_SIGNAL", "Signal is stable and familiar"
-        elif name == "gradual_shift":
-            return "GRADUAL_SHIFT", "Detected a gradual change in signal"
-        elif name == "sudden_rise":
-            return "SUDDEN_RISE", "Detected a sharp upward spike"
-        elif name == "sudden_drop":
-            return "SUDDEN_DROP", "Detected a sharp downward drop"
-        elif name == "unresolved_pattern":
+        if signature.resolution_code == 1 or signature.change_mode_code == 9:
             return "UNRESOLVED_PATTERN", "Signal pattern could not be determined"
+
+        if (
+            signature.change_mode_code == 0
+            and signature.direction_code == 0
+            and signature.novelty_code == 0
+        ):
+            return "STABLE_SIGNAL", "Signal is stable and familiar"
+        elif (
+            signature.change_mode_code == 1
+            and signature.magnitude_band_code == 1
+            and signature.direction_code in (-1, 1)
+        ):
+            return "GRADUAL_SHIFT", "Detected a gradual change in signal"
+        elif (
+            signature.change_mode_code == 2
+            and signature.magnitude_band_code == 2
+            and signature.direction_code == 1
+        ):
+            return "SUDDEN_RISE", "Detected a sharp upward spike"
+        elif (
+            signature.change_mode_code == 2
+            and signature.magnitude_band_code == 2
+            and signature.direction_code == -1
+        ):
+            return "SUDDEN_DROP", "Detected a sharp downward drop"
         
         # Fallback for unexpected proto-concept names
         return "SUCCESS", "Successful perception processing"
