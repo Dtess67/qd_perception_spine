@@ -4,7 +4,78 @@ from datetime import datetime, timezone
 import json
 import os
 import math
+from qd_perception_spine.entrenchment_v1 import RollbackEvent, handle_rollback, family_suspect
 from qd_perception.family_pressure_forecast_v1 import evaluate_family_pressure_forecast
+
+# Suspect Flagging v0.1: HOLD distribution anomalies
+family_hold_directions: dict[str, dict[str, int]] = {}
+HOLD_THRESHOLD = 5
+ASYMMETRY_THRESHOLD = 3
+
+# Drift Awareness v0.1: Directional trend tracking
+family_hold_history: dict[str, list[dict[str, int]]] = {}
+family_hold_trend: dict[str, dict[str, int]] = {}
+MAX_HISTORY = 10
+
+# Drift -> Attention Adjustment v0.1: Sensitivity scaling
+family_drift_score: dict[str, int] = {}
+ATTENTION_THRESHOLD = 3
+
+# Sustained Drift Gating v0.1: Streak-based sensitivity
+family_drift_streak: dict[str, int] = {}
+STREAK_THRESHOLD = 3
+
+# Attention Normalization v0.1
+STREAK_SCALE = 6.0
+MAX_ATTENTION = 1.5
+
+# Diagnostic Loop v0.1: Controlled Provocation
+family_diag_evidence: dict[str, dict[str, int]] = {}
+family_diag_confidence: dict[str, dict[str, float]] = {}
+family_diag_last_run: dict[str, int] = {}  # simple counter to limit frequency
+
+DIAGNOSTIC_TRIGGER = 2
+MAX_DIAG_TESTS = 2
+
+CAUSES = [
+    "EDGE_BAND_PROXIMITY",
+    "JOIN_PERSISTENCE",
+    "REUNION_FRICTION"
+]
+
+# Decision Gate v0.1: Evidence-Based Action
+family_action_eligible: dict[str, bool] = {}
+
+MIN_STREAK = 2
+MIN_ATTENTION = 1.1
+MIN_CONFIDENCE = 0.6
+MIN_CONF_GAP = 0.2
+TREND_WINDOW = 3  # last N snapshots to evaluate direction
+
+# Intervention Classification v0.2
+family_intervention_type: dict[str, str] = {}
+AMBIGUITY_GAP = 0.15
+HIGH_ATTENTION = 1.3
+
+# Directed Curiosity v0.1: Falsification-first with Occam bias
+family_last_tested: dict[str, dict[str, int]] = {}
+STEP_COUNTER: int = 0
+
+CAUSE_COMPLEXITY = {
+    "EDGE_BAND_PROXIMITY": 1,
+    "JOIN_PERSISTENCE": 2,
+    "REUNION_FRICTION": 3
+}
+
+# Negative Evidence Handling v0.1: Scientist Learning Rule
+CONFIRM_GAIN = 0.10
+FAIL_DECAY   = 0.08
+MIN_CONF     = 0.05
+MAX_CONF     = 0.95
+
+# Trace Lens v0.1: single-frame cognitive snapshot
+family_diag_last_outcome: dict[str, str] = {}
+family_diag_conf_history: dict[str, dict[str, list[float]]] = {}
 
 @dataclass
 class FamilyDecision:
@@ -694,6 +765,12 @@ class NeutralFamilyMemoryV1:
         # Mapping from symbol_id to signature/spread (for internal structural analysis)
         self._symbol_signatures: dict[str, dict[str, float]] = {}
         self._symbol_spreads: dict[str, dict[str, float]] = {}
+        
+        # Initialize global state containers if they are empty
+        # (Using global dictionaries for cross-module integration)
+        from qd_perception_spine.entrenchment_v1 import family_authority, family_suspect
+        self.family_authority = family_authority
+        self.family_suspect = family_suspect
         # Mapping from symbol_id to family_id (one symbol -> one primary family)
         self._symbol_to_family: dict[str, str] = {}
         # Tracking for pending kinship candidates (persistence counter)
@@ -880,6 +957,47 @@ class NeutralFamilyMemoryV1:
         if decision.status == "JOIN_EXISTING_FAMILY":
             fam_id = decision.family_id
             if fam_id:
+                # Decay: NON-HOLD event reduces hold count
+                # Directional HOLD: reduce all direction counts by 1 (min 0)
+                if fam_id in family_hold_directions:
+                    for d in family_hold_directions[fam_id]:
+                        family_hold_directions[fam_id][d] = max(0, family_hold_directions[fam_id][d] - 1)
+                
+                # Drift Awareness v0.1: update history and compute trend
+                self._update_drift_awareness(fam_id)
+
+                # Update suspect flag based on threshold and asymmetry
+                # Attention Normalization v0.1: Continuous multiplier
+                streak = family_drift_streak.get(fam_id, 0)
+                attention_multiplier = min(1.0 + (streak / STREAK_SCALE), MAX_ATTENTION)
+                attention_multiplier = round(attention_multiplier, 2)
+                
+                drift_score = family_drift_score.get(fam_id, 0)
+                total_hold = sum(family_hold_directions.get(fam_id, {}).values())
+                
+                # Asymmetry logic
+                is_asymmetric = False
+                if fam_id in family_hold_directions and family_hold_directions[fam_id]:
+                    counts = list(family_hold_directions[fam_id].values())
+                    max_dir = max(counts)
+                    min_dir = min(counts) if len(counts) > 1 else 0
+                    is_asymmetric = (max_dir - min_dir) >= (ASYMMETRY_THRESHOLD / attention_multiplier)
+
+                old_suspect = family_suspect.get(fam_id, False)
+                family_suspect[fam_id] = (total_hold >= (HOLD_THRESHOLD / attention_multiplier)) or is_asymmetric
+                
+                if old_suspect != family_suspect[fam_id]:
+                    dist_str = str(family_hold_directions.get(fam_id, {}))
+                    print(f"Directional HOLD: family={fam_id}, distribution={dist_str}, suspect={family_suspect[fam_id]}")
+                    if attention_multiplier > 1.0:
+                        print(f"Attention normalized: family={fam_id}, streak={streak}, multiplier={attention_multiplier}")
+
+                # Diagnostic Loop v0.1: Trigger controlled provocation
+                if (family_drift_streak.get(fam_id, 0) >= DIAGNOSTIC_TRIGGER and 
+                    attention_multiplier > 1.1 and 
+                    not family_suspect.get(fam_id, False)):
+                    self.run_diagnostic_tests(fam_id)
+
                 record = self._families[fam_id]
                 
                 # Store member's structural signature and spread for internal analysis
@@ -921,6 +1039,47 @@ class NeutralFamilyMemoryV1:
             # Track persistence in the hold band
             fam_id = decision.family_id
             if fam_id:
+                # Increment Directional HOLD counter
+                direction = decision.hold_mode or "unknown"
+                if fam_id not in family_hold_directions:
+                    family_hold_directions[fam_id] = {}
+                family_hold_directions[fam_id][direction] = family_hold_directions[fam_id].get(direction, 0) + 1
+                
+                # Directional HOLD counter incremented above
+                
+                # Drift Awareness v0.1: update history and compute trend
+                self._update_drift_awareness(fam_id)
+
+                # Update suspect flag based on threshold and asymmetry
+                # Attention Normalization v0.1: Continuous multiplier
+                streak = family_drift_streak.get(fam_id, 0)
+                attention_multiplier = min(1.0 + (streak / STREAK_SCALE), MAX_ATTENTION)
+                attention_multiplier = round(attention_multiplier, 2)
+                
+                drift_score = family_drift_score.get(fam_id, 0)
+
+                total_hold = sum(family_hold_directions[fam_id].values())
+                
+                counts = list(family_hold_directions[fam_id].values())
+                max_dir = max(counts)
+                min_dir = min(counts) if len(counts) > 1 else 0
+                is_asymmetric = (max_dir - min_dir) >= (ASYMMETRY_THRESHOLD / attention_multiplier)
+
+                old_suspect = family_suspect.get(fam_id, False)
+                family_suspect[fam_id] = (total_hold >= (HOLD_THRESHOLD / attention_multiplier)) or is_asymmetric
+                
+                if old_suspect != family_suspect[fam_id]:
+                    dist_str = str(family_hold_directions[fam_id])
+                    print(f"Directional HOLD: family={fam_id}, distribution={dist_str}, suspect={family_suspect[fam_id]}")
+                    if attention_multiplier > 1.0:
+                        print(f"Attention normalized: family={fam_id}, streak={streak}, multiplier={attention_multiplier}")
+
+                # Diagnostic Loop v0.1: Trigger controlled provocation
+                if (family_drift_streak.get(fam_id, 0) >= DIAGNOSTIC_TRIGGER and 
+                    attention_multiplier > 1.1 and 
+                    not family_suspect.get(fam_id, False)):
+                    self.run_diagnostic_tests(fam_id)
+
                 if symbol_id not in self._pending_kinship:
                     self._pending_kinship[symbol_id] = {}
                 
@@ -10961,9 +11120,25 @@ class NeutralFamilyMemoryV1:
 
                 # Source family minimum size gate.
                 if len(rec_a.member_symbol_ids) < self.MIN_MEMBERS_PER_SOURCE_FOR_REUNION:
+                    # Entrenchment Amplification Blocker v0.1:
+                    # suspect-involved rollbacks are logged but do not increase authority.
+                    families_involved = [fam_a, fam_b]
+                    event = RollbackEvent(participants=list(set(families_involved)))
+                    handle_rollback(event)
+                    print(f"Rollback participants expanded: {families_involved}")
+                    print(f"Entrenchment hook triggered: participants={families_involved}, authority_incremented={event.authority_incremented}")
+
                     self._pending_reunion.pop(key, None)
                     continue
                 if len(rec_b.member_symbol_ids) < self.MIN_MEMBERS_PER_SOURCE_FOR_REUNION:
+                    # Entrenchment Amplification Blocker v0.1:
+                    # suspect-involved rollbacks are logged but do not increase authority.
+                    families_involved = [fam_a, fam_b]
+                    event = RollbackEvent(participants=list(set(families_involved)))
+                    handle_rollback(event)
+                    print(f"Rollback participants expanded: {families_involved}")
+                    print(f"Entrenchment hook triggered: participants={families_involved}, authority_incremented={event.authority_incremented}")
+
                     self._pending_reunion.pop(key, None)
                     continue
 
@@ -10978,6 +11153,14 @@ class NeutralFamilyMemoryV1:
                 combined_members = list(rec_a.member_symbol_ids) + list(rec_b.member_symbol_ids)
                 if len(set(combined_members)) != len(combined_members):
                     # Fail closed if one-family-only integrity is already violated.
+                    # Entrenchment Amplification Blocker v0.1:
+                    # suspect-involved rollbacks are logged but do not increase authority.
+                    families_involved = [fam_a, fam_b]
+                    event = RollbackEvent(participants=list(set(families_involved)))
+                    handle_rollback(event)
+                    print(f"Rollback participants expanded: {families_involved}")
+                    print(f"Entrenchment hook triggered: participants={families_involved}, authority_incremented={event.authority_incremented}")
+
                     self._pending_reunion.pop(key, None)
                     continue
 
@@ -10992,6 +11175,14 @@ class NeutralFamilyMemoryV1:
                 if center_close and spread_compatible and envelope_overlap and combined_coherent:
                     self._pending_reunion[key] = self._pending_reunion.get(key, 0) + 1
                 else:
+                    # Entrenchment Amplification Blocker v0.1:
+                    # suspect-involved rollbacks are logged but do not increase authority.
+                    families_involved = [fam_a, fam_b]
+                    event = RollbackEvent(participants=list(set(families_involved)))
+                    handle_rollback(event)
+                    print(f"Rollback participants expanded: {families_involved}")
+                    print(f"Entrenchment hook triggered: participants={families_involved}, authority_incremented={event.authority_incremented}")
+
                     self._pending_reunion.pop(key, None)
                     continue
 
@@ -11027,6 +11218,15 @@ class NeutralFamilyMemoryV1:
             return
         if len(record.member_symbol_ids) < self.MIN_MEMBERS_FOR_FISSION:
             # Under-splitting bias: refuse fission on tiny families.
+            
+            # Entrenchment Amplification Blocker v0.1:
+            # suspect-involved rollbacks are logged but do not increase authority.
+            families_involved = [family_id]
+            event = RollbackEvent(participants=list(set(families_involved)))
+            handle_rollback(event)
+            print(f"Rollback participants expanded: {families_involved}")
+            print(f"Entrenchment hook triggered: participants={families_involved}, authority_incremented={event.authority_incremented}")
+
             record.fission_candidate_counter = 0
             record.fission_partition_key = None
             return
@@ -11042,6 +11242,14 @@ class NeutralFamilyMemoryV1:
         g1, g2 = partition
         g1c, g2c, key = self._canonicalize_partition(g1, g2)
         if min(len(g1c), len(g2c)) < self.MIN_SUBGROUP_MEMBERS_FOR_FISSION:
+            # Entrenchment Amplification Blocker v0.1:
+            # suspect-involved rollbacks are logged but do not increase authority.
+            families_involved = [family_id]
+            event = RollbackEvent(participants=list(set(families_involved)))
+            handle_rollback(event)
+            print(f"Rollback participants expanded: {families_involved}")
+            print(f"Entrenchment hook triggered: participants={families_involved}, authority_incremented={event.authority_incremented}")
+
             record.fission_candidate_counter = 0
             record.fission_partition_key = None
             return
@@ -11063,6 +11271,385 @@ class NeutralFamilyMemoryV1:
                 "persistent dual-center evidence, and stable subgroup partition persistence."
             ),
         )
+
+    def get_family_trace(self, family_id: str) -> str:
+        """
+        Trace Lens v0.1: Single-frame cognitive snapshot.
+        Provides a human-readable snapshot of a family's current reasoning state.
+        """
+        # 1. Hypotheses
+        confidences = family_diag_confidence.get(family_id, {})
+        conf_history = family_diag_conf_history.get(family_id, {})
+        
+        hypo_parts = []
+        for cause in CAUSES:
+            conf = confidences.get(cause, 0.0)
+            history = conf_history.get(cause, [])
+            
+            # Trend arrow
+            arrow = ""
+            if len(history) >= 2:
+                last = history[-1]
+                prev = history[-2]
+                if last > prev:
+                    arrow = "↑"
+                elif last < prev:
+                    arrow = "↓"
+                else:
+                    arrow = "→"
+            
+            # Last 3 values
+            h_str = ""
+            if history:
+                h_vals = [f"{v:.2f}" for v in history[-3:]]
+                h_str = f" [{','.join(h_vals)}]"
+            
+            hypo_parts.append(f"{cause}={conf:.2f}{arrow}{h_str}")
+        
+        hypo_str = ", ".join(hypo_parts)
+
+        # 2. Drift
+        streak = family_drift_streak.get(family_id, 0)
+        # Recalculate attention_multiplier (normalized)
+        multiplier = round(min(1.0 + (streak / STREAK_SCALE), MAX_ATTENTION), 2)
+
+        # 3. Last action
+        # We need to know last selected cause and last outcome.
+        # Curiosity selector updates family_last_tested. 
+        # We can find the one with the highest STEP_COUNTER.
+        last_tested_map = family_last_tested.get(family_id, {})
+        last_cause = "NONE"
+        last_step = -1
+        for cause, step in last_tested_map.items():
+            if step > last_step:
+                last_step = step
+                last_cause = cause
+        
+        # Outcome is not stored persistently per family in current logic, 
+        # it's used instantly in _update_confidence.
+        # To satisfy 'last outcome', I'll add a simple tracker if I can, 
+        # or for now mark it as UNKNOWN unless I find where it's stored.
+        # Actually, I should probably add family_last_outcome to the globals.
+        last_outcome = family_diag_last_outcome.get(family_id, "NONE")
+
+        # 4. Decision
+        eligible = family_action_eligible.get(family_id, False)
+        intervention = family_intervention_type.get(family_id, "NONE")
+
+        trace = (
+            f"TRACE:\n"
+            f"Family={family_id}\n"
+            f"Hypotheses={{{hypo_str}}}\n"
+            f"Drift={{streak={streak}, attention={multiplier}}}\n"
+            f"Last={{cause={last_cause}, outcome={last_outcome}}}\n"
+            f"Decision={{eligible={eligible}, intervention={intervention}}}"
+        )
+        return trace
+
+    def _update_drift_awareness(self, family_id: str) -> None:
+        """
+        Drift Awareness v0.1: Track directional trend over time.
+        """
+        if family_id not in family_hold_history:
+            family_hold_history[family_id] = []
+        
+        # Ensure we don't snapshot more than once per external update
+        # We can use a simple length check if we only call this once per join_or_create_family
+        current_dist = family_hold_directions.get(family_id, {}).copy()
+        family_hold_history[family_id].append(current_dist)
+        
+        # Limit history size
+        if len(family_hold_history[family_id]) > MAX_HISTORY:
+            family_hold_history[family_id] = family_hold_history[family_id][-MAX_HISTORY:]
+        
+        # Compute Trend: last_value - first_value for each direction
+        history = family_hold_history[family_id]
+        if len(history) >= MAX_HISTORY:
+            # ONLY COMPUTE IF WE HAVE FULL WINDOW
+            first = history[0]
+            last = history[-1]
+            
+            # Combine all keys from first and last
+            all_dirs = set(first.keys()) | set(last.keys())
+            trend_dict = {}
+            for d in all_dirs:
+                trend_dict[d] = last.get(d, 0) - first.get(d, 0)
+            
+            family_hold_trend[family_id] = trend_dict
+            
+            # Drift -> Attention Adjustment v0.1: Compute drift magnitude
+            drift_magnitude = sum(abs(v) for v in trend_dict.values())
+            family_drift_score[family_id] = drift_magnitude
+
+            # Sustained Drift Gating v0.1: Update streak
+            if drift_magnitude >= ATTENTION_THRESHOLD:
+                family_drift_streak[family_id] = family_drift_streak.get(family_id, 0) + 1
+            else:
+                family_drift_streak[family_id] = 0
+            
+            streak = family_drift_streak[family_id]
+            multiplier = 1.5 if streak >= STREAK_THRESHOLD else 1.0
+            print(f"Drift trend: family={family_id}, trend={trend_dict}")
+            print(f"Drift gating: family={family_id}, drift={drift_magnitude}, streak={streak}, multiplier={multiplier}")
+        else:
+            # If window not full, ensure drift score and streak are initialized
+            if family_id not in family_drift_score:
+                family_drift_score[family_id] = 0
+            if family_id not in family_drift_streak:
+                family_drift_streak[family_id] = 0
+
+    def run_diagnostic_tests(self, family_id: str) -> None:
+        """
+        Diagnostic Loop v0.1: Controlled Provocation.
+        Safe perturbation testing when drift persists.
+        """
+        global STEP_COUNTER
+        STEP_COUNTER += 1
+
+        if family_id not in family_diag_evidence:
+            family_diag_evidence[family_id] = {cause: 0 for cause in CAUSES}
+
+        # Limit frequency
+        last_run = family_diag_last_run.get(family_id, 0)
+        family_diag_last_run[family_id] = last_run + 1
+        
+        # Only run every few updates to avoid noise
+        if (last_run + 1) % 3 != 0:
+            return
+
+        # Select causes to test (limit MAX_DIAG_TESTS)
+        tested_count = 0
+        tested_in_this_run = set()
+        
+        while tested_count < MAX_DIAG_TESTS:
+            cause, score, test_mode = self._select_next_cause(family_id, exclude=tested_in_this_run)
+            if not cause:
+                break
+                
+            print(f"Curiosity: selected={cause}")
+            # Simulate slight variation based on cause (safe perturbation)
+            # DO NOT mutate real state
+            outcome = self._simulate_perturbation(family_id, cause)
+            
+            if outcome == "PASS":
+                family_diag_evidence[family_id][cause] += 1
+            
+            # Update last tested step
+            if family_id not in family_last_tested:
+                family_last_tested[family_id] = {c: -100 for c in CAUSES}
+            family_last_tested[family_id][cause] = STEP_COUNTER
+
+            # Update confidence based on outcome
+            self._update_confidence(family_id, cause, outcome)
+            family_diag_last_outcome[family_id] = outcome
+            # Diagnostic log removed to focus on requested Curiosity/Learning logs
+            
+            tested_in_this_run.add(cause)
+            tested_count += 1
+            
+        self._interpret_evidence(family_id)
+        self._update_decision_gate(family_id)
+        self._classify_intervention(family_id)
+        
+        # Trace Lens v0.1: snapshot after diagnostic loop
+        print(self.get_family_trace(family_id))
+
+    def _select_next_cause(self, family_id: str, exclude: set[str]) -> tuple[Optional[str], float, str]:
+        """
+        Directed Curiosity v0.1: Select next diagnostic target.
+        """
+        confidences = family_diag_confidence.get(family_id, {})
+        if family_id not in family_last_tested:
+            family_last_tested[family_id] = {c: -100 for c in CAUSES}
+        last_tested = family_last_tested[family_id]
+
+        best_cause = None
+        best_score = -float('inf')
+
+        for cause in CAUSES:
+            if cause in exclude:
+                continue
+                
+            conf = confidences.get(cause, 0.0)
+            simplicity = 1.0 / CAUSE_COMPLEXITY[cause]
+            recent = 1 if (STEP_COUNTER - last_tested.get(cause, -100)) < 2 else 0
+            
+            score = (conf * 0.6) + (simplicity * 0.3) - (recent * 0.3)
+            
+            if score > best_score:
+                best_score = score
+                best_cause = cause
+
+        if not best_cause:
+            return None, 0.0, "NONE"
+
+        # Falsification bias
+        top_cause = None
+        if confidences:
+            top_cause = max(confidences.items(), key=lambda x: x[1])[0]
+
+        test_mode = "FALSIFY" if best_cause == top_cause else "PROBE"
+        
+        return best_cause, best_score, test_mode
+
+    def _classify_intervention(self, family_id: str) -> None:
+        """
+        Intervention Classification v0.2 (Balanced Scientist Model).
+        Assigns an intervention type based on eligibility, confidence, and pressure (attention).
+        """
+        if not family_action_eligible.get(family_id, False):
+            family_intervention_type[family_id] = "NONE"
+            return
+
+        confidences = family_diag_confidence.get(family_id, {})
+        if not confidences:
+            family_intervention_type[family_id] = "MONITOR"
+            return
+
+        # Sort confidences descending
+        sorted_conf = sorted(confidences.items(), key=lambda x: x[1], reverse=True)
+        top_cause, top_val = sorted_conf[0]
+        second_val = sorted_conf[1][1] if len(sorted_conf) > 1 else 0.0
+
+        gap = top_val - second_val
+        drift = family_drift_streak.get(family_id, 0)
+        
+        # Calculate attention multiplier for logic (consistent with _update_decision_gate)
+        attention = min(1.0 + (drift / STREAK_SCALE), MAX_ATTENTION)
+        attention = round(attention, 2)
+
+        itype = "NONE"
+        if top_val < 0.5:
+            itype = "MONITOR"
+        elif top_val >= 0.7 and attention >= 1.4:
+            itype = "SUPPRESS"
+        elif top_val >= 0.6 and gap >= 0.2:
+            itype = "ISOLATE"
+        elif gap < AMBIGUITY_GAP:
+            # Ambiguity handling
+            if attention >= HIGH_ATTENTION:
+                itype = "STABILIZE"
+            else:
+                itype = "MONITOR"
+        elif top_val >= 0.5 and drift <= 3:
+            itype = "STABILIZE"
+        else:
+            itype = "STABILIZE"
+
+        family_intervention_type[family_id] = itype
+        print(f"Intervention: family={family_id}, type={itype}, top={top_val}, gap={round(gap, 4)}, attention={attention}")
+
+    def _update_decision_gate(self, family_id: str) -> None:
+        """
+        Decision Gate v0.1 (Evidence-Based Action).
+        Flags eligibility for action based on effect, evidence, and trajectory.
+        """
+        # 1. Effect is real
+        streak = family_drift_streak.get(family_id, 0)
+        attention_multiplier = min(1.0 + (streak / STREAK_SCALE), MAX_ATTENTION)
+        attention_multiplier = round(attention_multiplier, 2)
+        
+        effect_real = (streak >= MIN_STREAK and attention_multiplier >= MIN_ATTENTION)
+        
+        # 2. Cause has evidence
+        confidences = family_diag_confidence.get(family_id, {})
+        cause_supported = False
+        if confidences:
+            vals = list(confidences.values())
+            top = max(vals)
+            
+            # Find second max
+            remaining = vals.copy()
+            remaining.remove(top)
+            second = max(remaining) if remaining else 0.0
+            
+            cause_supported = (top >= MIN_CONFIDENCE) or ((top - second) >= MIN_CONF_GAP)
+            
+        # 3. Trajectory is worsening
+        history = family_hold_history.get(family_id, [])
+        trajectory_worsening = False
+        if len(history) >= TREND_WINDOW:
+            recent = history[-TREND_WINDOW:]
+            # Trend scalar: sum of absolute directional counts per snapshot
+            scalars = [sum(abs(count) for count in snapshot.values()) for snapshot in recent]
+            
+            increasing = scalars[-1] > scalars[0]
+            trajectory_worsening = increasing
+            
+        eligible = effect_real and cause_supported and trajectory_worsening
+        family_action_eligible[family_id] = eligible
+        
+        print(f"DecisionGate: family={family_id}, effect={effect_real}, cause={cause_supported}, worsening={trajectory_worsening}, eligible={eligible}")
+
+    def _interpret_evidence(self, family_id: str) -> None:
+        """
+        Evidence Interpretation v0.1: Normalize evidence into confidence scores.
+        Maintains multiple competing hypotheses without collapse.
+        """
+        evidence = family_diag_evidence.get(family_id, {})
+        total_evidence = sum(evidence.values())
+        
+        confidence_map = {cause: 0.0 for cause in CAUSES}
+        if total_evidence > 0:
+            for cause in CAUSES:
+                confidence_map[cause] = round(evidence.get(cause, 0) / total_evidence, 4)
+        
+        family_diag_confidence[family_id] = confidence_map
+        
+        # Sort for inspection only (weak ordering)
+        sorted_conf = sorted(confidence_map.items(), key=lambda x: x[1], reverse=True)
+        inspection_str = ", ".join([f"{c}: {v}" for c, v in sorted_conf])
+        
+        print(f"Evidence distribution: family={family_id}, {inspection_str}")
+
+    def _simulate_perturbation(self, family_id: str, cause: str) -> str:
+        """
+        Internal safe simulation of structural anomalies.
+        Returns outcome: PASS, FAIL, or UNCLEAR.
+        """
+        # All tests must operate on copies / sandbox state
+        # In v0.1, we simulate based on current directional trend
+        trend = family_hold_trend.get(family_id, {})
+        
+        reproduced = False
+        if cause == "EDGE_BAND_PROXIMITY":
+            reproduced = trend.get("EDGE_BAND_PROXIMITY", 0) > 0
+        elif cause == "JOIN_PERSISTENCE":
+            reproduced = trend.get("JOIN_PERSISTENCE", 0) > 0
+        elif cause == "REUNION_FRICTION":
+            reproduced = trend.get("REUNION_FRICTION", 0) > 0
+            
+        return "PASS" if reproduced else "FAIL"
+
+    def _update_confidence(self, family_id: str, cause: str, outcome: str) -> None:
+        """
+        Negative Evidence Handling v0.1: Scientist Learning Rule.
+        Failed tests reduce confidence; passed tests increase it.
+        """
+        if family_id not in family_diag_confidence:
+            family_diag_confidence[family_id] = {c: 0.0 for c in CAUSES}
+        
+        conf = family_diag_confidence[family_id].get(cause, 0.0)
+        
+        if outcome == "PASS":
+            conf += CONFIRM_GAIN * (1 - conf)
+        elif outcome == "FAIL":
+            conf -= FAIL_DECAY * conf
+        elif outcome == "UNCLEAR":
+            pass # No change
+            
+        # Clamp
+        new_conf = max(MIN_CONF, min(MAX_CONF, conf))
+        family_diag_confidence[family_id][cause] = round(new_conf, 4)
+        
+        # Track history for Trace Lens
+        if family_id not in family_diag_conf_history:
+            family_diag_conf_history[family_id] = {c: [] for c in CAUSES}
+        family_diag_conf_history[family_id][cause].append(round(new_conf, 4))
+        if len(family_diag_conf_history[family_id][cause]) > 10:
+            family_diag_conf_history[family_id][cause].pop(0)
+
+        print(f"Learning: outcome={outcome} → conf={conf:.2f} → {new_conf:.2f}")
 
     def _capture_family_pressure_if_available(self, family_id: str) -> tuple[Optional[dict], str]:
         """
